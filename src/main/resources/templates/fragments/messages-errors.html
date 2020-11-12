@@ -1,0 +1,11 @@
+<span th:fragment="messages-errors">
+
+    <div th:each="errorMessage: ${errorMessages}">
+        <p th:text="${errorMessage}" th:if="${errorMessage ne null}" class="alert alert-danger"/>
+    </div>
+
+    <div th:each="infoMessage: ${infoMessages}">
+        <p th:text="${infoMessage}" th:if="${infoMessage ne null}" class="alert alert-info"/>
+    </div>
+
+</span>
