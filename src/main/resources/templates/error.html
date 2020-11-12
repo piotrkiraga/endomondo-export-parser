@@ -1,0 +1,42 @@
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <title th:text="#{title.error}"/>
+</head>
+<body>
+
+<section class="my-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-10 mx-auto">
+
+                <h2 th:text="#{title.error}"/>
+
+                <div class="header-panel my-3">
+                    <a href="/home/"><span th:text="#{title.home}"/></a>
+                    |
+                    <a href="/upload/"><span th:text="#{title.upload}"/></a>
+                    |
+                    <a href="/?lang=en"><span th:text="#{language.en}"/></a>
+                    |
+                    <a href="/?lang=pl"><span th:text="#{language.pl}"/></a>
+                </div>
+
+                <p></p>
+
+                <p th:if="${url ne null}" th:text="${url}" class="alert alert-primary"/>
+
+                <p th:if="${exception ne null && exception.message ne null}" th:text="${exception.message}" class="alert alert-danger"/>
+
+                <div th:if="${exception ne null && exception.stackTrace ne null}" class="alert alert-danger">
+                    <div th:each="stackTraceLine: ${exception.stackTrace}" th:text="${stackTraceLine}"/>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+</body>
+</html>

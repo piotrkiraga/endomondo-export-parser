@@ -1,0 +1,50 @@
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <title th:text="#{title.upload}"/>
+</head>
+<body>
+
+<section class="my-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-10 mx-auto">
+
+                <h2 th:text="#{title.upload}"/>
+
+                <div class="header-panel my-3">
+                    <a href="/home/"><span th:text="#{title.home}"/></a>
+                    |
+                    <a href="/upload/"><span th:text="#{title.upload}"/></a>
+                    |
+                    <a href="/?lang=en"><span th:text="#{language.en}"/></a>
+                    |
+                    <a href="/?lang=pl"><span th:text="#{language.pl}"/></a>
+                </div>
+
+                <p></p>
+
+                <div th:each="errorMessage: ${errorMessages}">
+                    <p th:text="${errorMessage}" th:if="${errorMessage ne null}" class="alert alert-danger"/>
+                </div>
+
+                <div th:each="infoMessage: ${infoMessages}">
+                    <p th:text="${infoMessage}" th:if="${infoMessage ne null}" class="alert alert-info"/>
+                </div>
+
+                <form action="#" th:action="@{/upload/process}" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="file">File containing Endomondo activity export in JSON format:</label>
+                        <input type="file" name="file" id="file" class="form-control-file"/>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+</body>
+</html>
