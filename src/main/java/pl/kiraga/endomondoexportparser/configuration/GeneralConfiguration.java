@@ -22,7 +22,7 @@ public class GeneralConfiguration implements WebMvcConfigurer {
     @Description("Spring Message Resolver")
     public ResourceBundleMessageSource messageSource() {
         ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
-        messageSource.setBasename("messages");
+        messageSource.addBasenames("messages", "version");
         return messageSource;
     }
 
