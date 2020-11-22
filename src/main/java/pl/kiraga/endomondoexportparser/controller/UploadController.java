@@ -24,7 +24,7 @@ import java.util.Set;
 @RequestMapping(value = "/upload")
 public class UploadController extends BaseController {
 
-    @RequestMapping(value = "/", method = RequestMethod.GET)
+    @RequestMapping(value = "", method = RequestMethod.GET)
     public String view() {
         return "upload";
     }

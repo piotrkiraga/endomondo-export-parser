@@ -25,7 +25,7 @@ public class BaseControllerPrePostInterceptor extends HandlerInterceptorAdapter 
         String requestUri = request.getRequestURI();
         String serviceName = requestUri.substring(requestUri.lastIndexOf("/") + 1);
         if (serviceName.equals("process")) {
-
+            // do some specific stuff for "process" service
         }
 
         return super.preHandle(request, response, handler);

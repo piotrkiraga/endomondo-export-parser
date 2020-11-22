@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 @Controller
 @RequestMapping(value = {"/", "/home"})
-public class HomeController {
+public class HomeController extends BaseController {
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public String view() {
