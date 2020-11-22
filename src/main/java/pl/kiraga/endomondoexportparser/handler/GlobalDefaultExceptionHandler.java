@@ -29,7 +29,7 @@ class GlobalDefaultExceptionHandler {
         // Otherwise setup and send the user to a default error-view.
         ModelAndView mav = new ModelAndView();
         mav.addObject("exception", exception);
-        mav.addObject("url", request.getRequestURL());
+        mav.addObject("requestUrl", request.getRequestURL());
         mav.setViewName("error");
 
         logger.error("Exception occurred: ", exception);
