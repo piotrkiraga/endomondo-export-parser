@@ -1,11 +1,12 @@
 package pl.kiraga.endomondoexportparser;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 
-@SpringBootApplication(exclude = {SecurityAutoConfiguration.class, ManagementWebSecurityAutoConfiguration.class})
+// The former SecurityAutoConfiguration/ManagementWebSecurityAutoConfiguration excludes
+// were dropped at the Boot 4 hop: both back off automatically because the app defines
+// its own SecurityFilterChain and UserDetailsService in WebSecurityConfiguration.
+@SpringBootApplication
 public class EndomondoExportParserApplication {
 
     public static void main(String[] args) {
