@@ -43,8 +43,8 @@ public class WebSecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                .authorizeRequests(authorize -> authorize
-                        .antMatchers(AUTHENTICATION_NOT_REQUIRED).permitAll()
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(AUTHENTICATION_NOT_REQUIRED).permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults());
 

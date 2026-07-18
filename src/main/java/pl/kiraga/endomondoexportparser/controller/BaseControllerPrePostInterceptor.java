@@ -1,14 +1,16 @@
 package pl.kiraga.endomondoexportparser.controller;
 
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
+// HandlerInterceptorAdapter was removed in Spring Framework 6; the interface's
+// default methods provide the same no-op behavior the adapter did.
 @Component
-public class BaseControllerPrePostInterceptor extends HandlerInterceptorAdapter {
+public class BaseControllerPrePostInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request,
@@ -28,7 +30,7 @@ public class BaseControllerPrePostInterceptor extends HandlerInterceptorAdapter 
             // do some specific stuff for "process" service
         }
 
-        return super.preHandle(request, response, handler);
+        return HandlerInterceptor.super.preHandle(request, response, handler);
 
     }
 
@@ -38,7 +40,7 @@ public class BaseControllerPrePostInterceptor extends HandlerInterceptorAdapter 
                            Object handler,
                            ModelAndView modelAndView) throws Exception {
 
-        super.postHandle(request, response, handler, modelAndView);
+        HandlerInterceptor.super.postHandle(request, response, handler, modelAndView);
 
     }
 
