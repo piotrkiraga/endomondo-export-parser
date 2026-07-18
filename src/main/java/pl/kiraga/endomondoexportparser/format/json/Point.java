@@ -11,7 +11,7 @@ public class Point {
 
     private Location location;
     private Double distance_km;
-    private Integer speed_kmh;
+    private Double speed_kmh;
     private Double altitude;
     private String timestamp;
 

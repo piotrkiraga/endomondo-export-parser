@@ -22,7 +22,7 @@ public class EndomondoJson {
     private String end_time;
     private Integer duration_s;
     private Double distance_km;
-    private Integer calories_kcal;
+    private Double calories_kcal;
     private Double altitude_min_m;
     private Double altitude_max_m;
     private Double speed_avg_kmh;
