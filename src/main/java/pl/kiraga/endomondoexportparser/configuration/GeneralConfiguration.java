@@ -5,7 +5,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Description;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.web.servlet.LocaleResolver;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.CookieLocaleResolver;
@@ -14,8 +13,10 @@ import pl.kiraga.endomondoexportparser.controller.BaseControllerPrePostIntercept
 
 import java.util.Locale;
 
+// @EnableWebMvc removed at the Boot 2.7 hop: it disabled Boot's MVC autoconfiguration and,
+// since Spring Framework 5.3, DelegatingWebMvcConfiguration registers its own localeResolver
+// bean, colliding with the one below. Boot's autoconfiguration honors this WebMvcConfigurer.
 @Configuration
-@EnableWebMvc
 public class GeneralConfiguration implements WebMvcConfigurer {
 
     @Bean

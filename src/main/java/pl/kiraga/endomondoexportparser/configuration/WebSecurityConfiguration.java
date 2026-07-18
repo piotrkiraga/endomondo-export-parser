@@ -1,53 +1,52 @@
 package pl.kiraga.endomondoexportparser.configuration;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
-public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
+public class WebSecurityConfiguration {
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+    private static final String[] AUTHENTICATION_NOT_REQUIRED = {
+            "/",
+            "/error",
+            "/home",
+            "/upload",
+            "/upload/process"
+    };
+
+    @Bean
+    public UserDetailsService userDetailsService() {
         PasswordEncoder encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
-        auth
-                .inMemoryAuthentication()
-                .withUser("user")
+        UserDetails user = User.withUsername("user")
                 .password(encoder.encode("password"))
                 .roles("USER")
-                .and()
-                .withUser("admin")
+                .build();
+        UserDetails admin = User.withUsername("admin")
                 .password(encoder.encode("admin"))
-                .roles("USER", "ADMIN");
+                .roles("USER", "ADMIN")
+                .build();
+        return new InMemoryUserDetailsManager(user, admin);
     }
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-
-        String[] AUTHENTICATION_NOT_REQUIRED = {
-                "/",
-                "/error",
-                "/home",
-                "/upload",
-                "/upload/process"
-        };
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-
-                .authorizeRequests()
-                .antMatchers(AUTHENTICATION_NOT_REQUIRED).permitAll()
-
-                .and()
-                .authorizeRequests()
-                .anyRequest().authenticated()
-
-                .and()
-                .httpBasic();
+                .authorizeRequests(authorize -> authorize
+                        .antMatchers(AUTHENTICATION_NOT_REQUIRED).permitAll()
+                        .anyRequest().authenticated())
+                .httpBasic(Customizer.withDefaults());
 
         /*
         http
@@ -70,6 +69,8 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .logout()
                 .logoutUrl(LOGOUT_URL).permitAll();
         */
+
+        return http.build();
 
     }
 
