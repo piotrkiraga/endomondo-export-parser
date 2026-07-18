@@ -3,11 +3,11 @@
 ## ADDED Requirements
 
 ### Requirement: The project builds on a supported Spring Boot line
-The project SHALL declare a Spring Boot parent version that is within its open-source support window at the time the change lands, and SHALL NOT pin versions of dependencies that the Boot parent already manages (Thymeleaf, Lombok excepted while it needs a compile-compatibility floor).
+The project SHALL declare a Spring Boot parent version that is within its open-source support window at the time the change lands, and SHALL NOT pin versions of dependencies that the Boot parent already manages. Deliberate exceptions: Lombok (compile-compatibility floor) and Jackson 2 `jackson-databind` (the parser and its characterization tests are written against Jackson 2; Boot 4 defaults to Jackson 3, and the migration is deferred to the parser-fix change).
 
 #### Scenario: Supported parent version
 - **WHEN** `pom.xml` is inspected after the upgrade
-- **THEN** the `spring-boot-starter-parent` version is a 4.1.x release, and no Boot-managed dependency carries an explicit version pin
+- **THEN** the `spring-boot-starter-parent` version is a 4.1.x release, and no Boot-managed dependency carries an explicit version pin other than the documented Lombok and Jackson 2 exceptions
 
 ### Requirement: The project compiles and tests on Java 17
 The build SHALL target Java 17 and complete `mvnw clean verify` successfully on a Java 17 JDK.
