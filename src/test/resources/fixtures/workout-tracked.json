@@ -1,0 +1,253 @@
+[
+    {
+        "name": "Sample tracked ride"
+    },
+    {
+        "sport": "CYCLING_SPORT"
+    },
+    {
+        "source": "TRACK_MOBILE"
+    },
+    {
+        "created_date": "2011-09-10 12:58:59.0"
+    },
+    {
+        "start_time": "2011-09-10 12:58:00.0"
+    },
+    {
+        "end_time": "2011-09-10 15:07:45.0"
+    },
+    {
+        "duration_s": 7785
+    },
+    {
+        "distance_km": 34.04
+    },
+    {
+        "calories_kcal": 1339.81
+    },
+    {
+        "altitude_min_m": 236
+    },
+    {
+        "altitude_max_m": 338
+    },
+    {
+        "speed_avg_kmh": 15.741040462427744
+    },
+    {
+        "speed_max_kmh": 33.9
+    },
+    {
+        "ascend_m": 247
+    },
+    {
+        "descend_m": 286
+    },
+    {
+        "points": [
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.503514
+                            },
+                            {
+                                "longitude": 14.903923
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "distance_km": 0
+                },
+                {
+                    "timestamp": "Sat Sep 10 12:58:53 UTC 2011"
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.503514
+                            },
+                            {
+                                "longitude": 14.903923
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "altitude": 302
+                },
+                {
+                    "distance_km": 0
+                },
+                {
+                    "speed_kmh": 0
+                },
+                {
+                    "timestamp": "Sat Sep 10 12:58:59 UTC 2011"
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.503552
+                            },
+                            {
+                                "longitude": 14.903843
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "altitude": 303
+                },
+                {
+                    "distance_km": 0.007121
+                },
+                {
+                    "speed_kmh": 0
+                },
+                {
+                    "timestamp": "Sat Sep 10 12:59:25 UTC 2011"
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.503155
+                            },
+                            {
+                                "longitude": 14.903553
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "altitude": 306
+                },
+                {
+                    "distance_km": 0.055913
+                },
+                {
+                    "speed_kmh": 0
+                },
+                {
+                    "timestamp": "Sat Sep 10 13:00:05 UTC 2011"
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.50308
+                            },
+                            {
+                                "longitude": 14.903558
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "altitude": 307
+                },
+                {
+                    "distance_km": 0.064275
+                },
+                {
+                    "speed_kmh": 3.32816
+                },
+                {
+                    "timestamp": "Sat Sep 10 13:00:08 UTC 2011"
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.503021
+                            },
+                            {
+                                "longitude": 14.903596
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "altitude": 305
+                },
+                {
+                    "distance_km": 0.071369
+                },
+                {
+                    "speed_kmh": 3.9
+                },
+                {
+                    "timestamp": "Sat Sep 10 13:00:12 UTC 2011"
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.503064
+                            },
+                            {
+                                "longitude": 14.903489
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "altitude": 305
+                },
+                {
+                    "distance_km": 0.08042
+                },
+                {
+                    "speed_kmh": 5.7
+                },
+                {
+                    "timestamp": "Sat Sep 10 13:00:20 UTC 2011"
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.50323
+                            },
+                            {
+                                "longitude": 14.903537
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "altitude": 305
+                },
+                {
+                    "distance_km": 0.099369
+                },
+                {
+                    "speed_kmh": 13.2374
+                },
+                {
+                    "timestamp": "Sat Sep 10 13:00:24 UTC 2011"
+                }
+            ]
+        ]
+    }
+]

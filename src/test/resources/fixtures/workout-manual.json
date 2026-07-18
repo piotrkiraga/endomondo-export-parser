@@ -1,0 +1,400 @@
+[
+    {
+        "name": "Sample manual walk"
+    },
+    {
+        "sport": "WALKING"
+    },
+    {
+        "source": "INPUT_MANUAL"
+    },
+    {
+        "created_date": "2014-09-16 09:05:21.0"
+    },
+    {
+        "start_time": "2014-09-16 09:00:00.0"
+    },
+    {
+        "end_time": "2014-09-16 11:00:00.0"
+    },
+    {
+        "duration_s": 7200
+    },
+    {
+        "distance_km": 6.6
+    },
+    {
+        "calories_kcal": 491.268
+    },
+    {
+        "speed_avg_kmh": 3.3
+    },
+    {
+        "points": [
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.50291
+                            },
+                            {
+                                "longitude": 14.90272
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.50296
+                            },
+                            {
+                                "longitude": 14.90163
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.50418
+                            },
+                            {
+                                "longitude": 14.90156
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.50512
+                            },
+                            {
+                                "longitude": 14.90188
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.50582
+                            },
+                            {
+                                "longitude": 14.90706
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.50618
+                            },
+                            {
+                                "longitude": 14.90809
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.50979
+                            },
+                            {
+                                "longitude": 14.91274
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.51003
+                            },
+                            {
+                                "longitude": 14.91218
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.51127
+                            },
+                            {
+                                "longitude": 14.91343
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.51324
+                            },
+                            {
+                                "longitude": 14.91489
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.5139
+                            },
+                            {
+                                "longitude": 14.91581
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.51966
+                            },
+                            {
+                                "longitude": 14.93019
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.5198
+                            },
+                            {
+                                "longitude": 14.93098
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.51969
+                            },
+                            {
+                                "longitude": 14.93193
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.51838
+                            },
+                            {
+                                "longitude": 14.93783
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.51926
+                            },
+                            {
+                                "longitude": 14.93806
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.52246
+                            },
+                            {
+                                "longitude": 14.93789
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.5261
+                            },
+                            {
+                                "longitude": 14.93787
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.5312
+                            },
+                            {
+                                "longitude": 14.93478
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.53225
+                            },
+                            {
+                                "longitude": 14.93645
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.53343
+                            },
+                            {
+                                "longitude": 14.94049
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.53463
+                            },
+                            {
+                                "longitude": 14.93909
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.53584
+                            },
+                            {
+                                "longitude": 14.94263
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.53613
+                            },
+                            {
+                                "longitude": 14.94418
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.53667
+                            },
+                            {
+                                "longitude": 14.94622
+                            }
+                        ]
+                    ]
+                }
+            ],
+            [
+                {
+                    "location": [
+                        [
+                            {
+                                "latitude": 47.53609
+                            },
+                            {
+                                "longitude": 14.94298
+                            }
+                        ]
+                    ]
+                }
+            ]
+        ]
+    }
+]

@@ -1,0 +1,29 @@
+schema: spec-driven
+
+context: |
+  Brownfield revival of a 2020-era hobby project (last commit Nov 2020).
+
+  Tech stack: Java (declared target 9 — planned upgrade to 17/21), Spring Boot 2.3.5
+  (planned incremental upgrade to 2.7 then 3.x), Maven (mvnw wrapper), Thymeleaf,
+  Spring Security, war packaging. Package root: pl.kiraga.endomondoexportparser.
+
+  Domain: parsing personal Endomondo activity export files (JSON workouts, TCX) and
+  potentially converting them to GPX/Strava-importable formats. Endomondo shut down
+  in 2020, so the input formats are frozen — golden-file/characterization tests are
+  the preferred safety net.
+
+  Known state: core JSON parser in UploadController has known bugs (point properties
+  read from the wrong map); personal export data currently sits uncommitted under
+  src/main/resources/endomondo-strava-exports/ and must never be committed — use
+  small anonymized fixtures instead. Only a context-loads test exists.
+
+  Conventions: keep changes small and sequential (data hygiene → characterization
+  tests → platform upgrade → parser rewrite → new features). Modernize only code
+  that survives re-scoping.
+
+rules:
+  proposal:
+    - Always include a "Non-goals" section
+    - State which existing behavior must be preserved (characterization) vs. changed
+  tasks:
+    - Each task must be independently verifiable with a build/test command

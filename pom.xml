@@ -17,7 +17,10 @@
     <description>Endomondo activities export files parser</description>
 
     <properties>
-        <java.version>1.9</java.version>
+        <java.version>9</java.version>
+        <maven.compiler.source>9</maven.compiler.source>
+        <maven.compiler.target>9</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencies>
