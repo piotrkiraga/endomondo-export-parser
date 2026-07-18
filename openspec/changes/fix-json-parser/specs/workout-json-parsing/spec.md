@@ -5,6 +5,10 @@
 ### Requirement: Workout scalar fields are parsed from the export list structure
 Given an Endomondo workout export (a JSON array of single-key objects), the parser SHALL populate all workout-level fields present in the document: `name`, `sport`, `source`, `created_date`, `start_time`, `end_time`, `duration_s`, `distance_km`, `calories_kcal`, `altitude_min_m`, `altitude_max_m`, `speed_avg_kmh`, `speed_max_kmh`, `hydration_l`, `ascend_m`, `descend_m`. Numeric fields SHALL accept both integer and decimal JSON representations (`calories_kcal` and `speed_kmh` are decimal in the model, matching real files). Unknown keys SHALL be ignored.
 
+#### Scenario: Type-conforming workout header fields
+- **WHEN** a workout JSON is parsed whose numeric values all match the model types (integer `duration_s`, decimal `distance_km` and `speed_avg_kmh`; integer `calories_kcal` binds to the decimal model field)
+- **THEN** all scalar fields are populated with the corresponding values
+
 #### Scenario: Manual workout header fields from the real fixture
 - **WHEN** `fixtures/workout-manual.json` is parsed
 - **THEN** name is "Sample manual walk", sport is "WALKING", source is "INPUT_MANUAL", duration_s is 7200, distance_km is 6.6, calories_kcal is 491.268, speed_avg_kmh is 3.3
