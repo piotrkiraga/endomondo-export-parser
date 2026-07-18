@@ -1,5 +1,19 @@
 # workout-json-parsing
 
+## REMOVED Requirements
+
+### Requirement: Parsing crashes on numeric values whose JSON type mismatches the model type (pinned defect)
+**Reason**: Defect fixed by the fix-json-parser change — the merge-then-bind parser converts JSON numbers tolerantly.
+**Migration**: Superseded by "Numeric type mismatches are tolerated".
+
+### Requirement: Parsed points are never attached to the result (pinned defect)
+**Reason**: Defect fixed — points are now attached with all fields populated.
+**Migration**: Superseded by "Parsed points are attached to the result with all fields populated".
+
+### Requirement: Malformed input raises a Jackson parse error
+**Reason**: The parser no longer leaks library exception types; a domain exception covers all malformed-input causes, including wrong-shape JSON that previously escaped unhandled.
+**Migration**: Superseded by "Malformed input raises a domain exception the upload flow handles".
+
 ## MODIFIED Requirements
 
 ### Requirement: Workout scalar fields are parsed from the export list structure
@@ -16,6 +30,8 @@ Given an Endomondo workout export (a JSON array of single-key objects), the pars
 #### Scenario: Tracked workout header fields from the real fixture
 - **WHEN** `fixtures/workout-tracked.json` is parsed
 - **THEN** all header fields are populated, including altitude_min_m 236.0, altitude_max_m 338.0, ascend_m 247.0, descend_m 286.0 despite their integer JSON representation
+
+## ADDED Requirements
 
 ### Requirement: Numeric type mismatches are tolerated
 The parser SHALL convert JSON numbers to the model's numeric type regardless of whether the JSON representation is integer or decimal. Parsing a real export file SHALL NOT throw for any numeric field.

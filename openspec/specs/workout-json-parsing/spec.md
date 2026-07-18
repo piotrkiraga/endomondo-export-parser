@@ -4,40 +4,54 @@
 TBD - created by archiving change add-characterization-tests. Update Purpose after archive.
 ## Requirements
 ### Requirement: Workout scalar fields are parsed from the export list structure
-Given an Endomondo workout export (a JSON array of single-key objects), the parser SHALL populate the workout-level fields whose JSON value type matches the model field type: `name`, `sport`, `source`, `created_date`, `start_time`, `end_time`, `duration_s` (integer), `distance_km` (decimal), `speed_avg_kmh` (decimal).
+Given an Endomondo workout export (a JSON array of single-key objects), the parser SHALL populate all workout-level fields present in the document: `name`, `sport`, `source`, `created_date`, `start_time`, `end_time`, `duration_s`, `distance_km`, `calories_kcal`, `altitude_min_m`, `altitude_max_m`, `speed_avg_kmh`, `speed_max_kmh`, `hydration_l`, `ascend_m`, `descend_m`. Numeric fields SHALL accept both integer and decimal JSON representations (`calories_kcal` and `speed_kmh` are decimal in the model, matching real files). Unknown keys SHALL be ignored.
 
 #### Scenario: Type-conforming workout header fields
-- **WHEN** a workout JSON is parsed whose numeric values all match the model types (integer `duration_s` and `calories_kcal`, decimal `distance_km` and `speed_avg_kmh`)
+- **WHEN** a workout JSON is parsed whose numeric values all match the model types (integer `duration_s`, decimal `distance_km` and `speed_avg_kmh`; integer `calories_kcal` binds to the decimal model field)
 - **THEN** all scalar fields are populated with the corresponding values
 
-(Note: field population is NOT observable when parsing the real fixtures — the type-cast crash below discards the partially populated result.)
+#### Scenario: Manual workout header fields from the real fixture
+- **WHEN** `fixtures/workout-manual.json` is parsed
+- **THEN** name is "Sample manual walk", sport is "WALKING", source is "INPUT_MANUAL", duration_s is 7200, distance_km is 6.6, calories_kcal is 491.268, speed_avg_kmh is 3.3
 
-### Requirement: Parsing crashes on numeric values whose JSON type mismatches the model type (pinned defect)
-The parser blindly casts JSON numbers to the model's boxed type. It SHALL throw `ClassCastException` when a field's JSON representation differs in kind from the model type — notably decimal `calories_kcal` values (model type `Integer`), which occur in real export files, and integer altitude/ascend/descend values (model type `Double`).
+#### Scenario: Tracked workout header fields from the real fixture
+- **WHEN** `fixtures/workout-tracked.json` is parsed
+- **THEN** all header fields are populated, including altitude_min_m 236.0, altitude_max_m 338.0, ascend_m 247.0, descend_m 286.0 despite their integer JSON representation
 
-#### Scenario: Decimal calories crash the parse
+### Requirement: Numeric type mismatches are tolerated
+The parser SHALL convert JSON numbers to the model's numeric type regardless of whether the JSON representation is integer or decimal. Parsing a real export file SHALL NOT throw for any numeric field.
+
+#### Scenario: Decimal calories parse
 - **WHEN** `fixtures/workout-manual.json` (calories_kcal 491.268) is parsed
-- **THEN** a `ClassCastException` propagates out of the parser
+- **THEN** the parse succeeds and calories_kcal is 491.268
 
-#### Scenario: Tracked workout crashes the same way
-- **WHEN** `fixtures/workout-tracked.json` (calories_kcal 1339.81) is parsed
-- **THEN** a `ClassCastException` propagates out of the parser
+#### Scenario: Integer altitudes parse
+- **WHEN** `fixtures/workout-tracked.json` (altitude_min_m 236) is parsed
+- **THEN** the parse succeeds and altitude_min_m is 236.0
 
-### Requirement: Parsed points are never attached to the result (pinned defect)
-The parser builds `Point` objects from the `points` entry but SHALL leave the returned workout's points as the default empty list, because the result is only assigned on unrecognized keys.
+### Requirement: Parsed points are attached to the result with all fields populated
+The parser SHALL attach every entry of the `points` array to the returned workout, populating each point's `location` (latitude AND longitude), `altitude`, `distance_km`, `speed_kmh`, and `timestamp` from all of the point's single-key maps — not only the first one. Fields absent from a point SHALL remain null.
 
-#### Scenario: Points list is empty after parsing a points-bearing document
-- **WHEN** a workout JSON containing a `points` entry (and no entries that crash the parse) is parsed
-- **THEN** the returned workout's points list is empty
+#### Scenario: Manual fixture points carry full locations
+- **WHEN** `fixtures/workout-manual.json` (26 location-only points) is parsed
+- **THEN** the result has 26 points, each with non-null latitude and longitude and null altitude/distance_km/speed_kmh/timestamp
 
-### Requirement: Malformed input raises a Jackson parse error
-The parser SHALL propagate `JsonParseException` for input that is not syntactically valid JSON; the upload flow relies on this exception type to render a user-facing error message.
+#### Scenario: Tracked fixture points carry metrics
+- **WHEN** `fixtures/workout-tracked.json` (8 points with altitude, distance, speed, timestamp) is parsed
+- **THEN** the result has 8 points; the second point has altitude 302.0, distance_km 0.0, speed_kmh 0.0, a non-null timestamp, and a location with both coordinates
+
+### Requirement: Malformed input raises a domain exception the upload flow handles
+The parser SHALL throw `InvalidWorkoutJsonException` (wrapping the underlying cause) for input that is not syntactically valid JSON AND for valid JSON that is not an array of objects. The upload flow SHALL catch this exception and render the user-facing invalid-format error message for both cases.
 
 #### Scenario: Non-JSON upload
 - **WHEN** a file containing `this is not json` is parsed
-- **THEN** a `JsonParseException` propagates out of the parser
+- **THEN** an `InvalidWorkoutJsonException` propagates out of the parser
 
-#### Scenario: Valid JSON of the wrong shape is not handled as a parse error
+#### Scenario: Valid JSON of the wrong shape
 - **WHEN** a file containing a JSON object (`{}`) instead of an array is parsed
-- **THEN** a Jackson mapping exception that is not a `JsonParseException` propagates (the upload flow does not catch it)
+- **THEN** an `InvalidWorkoutJsonException` propagates out of the parser
+
+#### Scenario: Upload flow renders the error for wrong-shape input
+- **WHEN** a wrong-shape JSON file is submitted to `/upload/process`
+- **THEN** the upload view renders with the invalid-format error message instead of the error page
 

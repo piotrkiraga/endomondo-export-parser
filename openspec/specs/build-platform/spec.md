@@ -4,11 +4,15 @@
 TBD - created by archiving change upgrade-platform. Update Purpose after archive.
 ## Requirements
 ### Requirement: The project builds on a supported Spring Boot line
-The project SHALL declare a Spring Boot parent version that is within its open-source support window at the time the change lands, and SHALL NOT pin versions of dependencies that the Boot parent already manages. Deliberate exceptions: Lombok (compile-compatibility floor) and Jackson 2 `jackson-databind` (the parser and its characterization tests are written against Jackson 2; Boot 4 defaults to Jackson 3, and the migration is deferred to the parser-fix change).
+The project SHALL declare a Spring Boot parent version that is within its open-source support window at the time the change lands, and SHALL NOT pin versions of dependencies that the Boot parent already manages. Deliberate exception: Lombok (compile-compatibility floor).
 
 #### Scenario: Supported parent version
-- **WHEN** `pom.xml` is inspected after the upgrade
-- **THEN** the `spring-boot-starter-parent` version is a 4.1.x release, and no Boot-managed dependency carries an explicit version pin other than the documented Lombok and Jackson 2 exceptions
+- **WHEN** `pom.xml` is inspected
+- **THEN** the `spring-boot-starter-parent` version is a 4.1.x release, and no Boot-managed dependency carries an explicit version pin other than the documented Lombok exception
+
+#### Scenario: Parser uses Boot-managed Jackson 3
+- **WHEN** the dependency tree is inspected after the parser fix
+- **THEN** no `com.fasterxml.jackson.core:jackson-databind` pin remains; the parser binds via Boot-managed `tools.jackson` artifacts
 
 ### Requirement: The project compiles and tests on Java 17
 The build SHALL target Java 17 and complete `mvnw clean verify` successfully on a Java 17 JDK.
