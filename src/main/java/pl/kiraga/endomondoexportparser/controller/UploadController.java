@@ -60,7 +60,7 @@ public class UploadController extends BaseController {
 
     }
 
-    private EndomondoJson processEndomondoJson(MultipartFile file) throws IOException {
+    EndomondoJson processEndomondoJson(MultipartFile file) throws IOException {
 
         List<Map> dataFromJson;
         EndomondoJson endomondoJson = new EndomondoJson();
