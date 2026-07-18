@@ -55,3 +55,6 @@ data/
 *.mov
 *.wmv
 
+
+# Git Bash crash dumps
+*.stackdump
