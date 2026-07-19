@@ -34,6 +34,39 @@ public class UploadFlowTest {
     }
 
     @Test
+    void trackedWorkoutUploadRendersFullSummary() throws Exception {
+        byte[] workout = getClass().getResourceAsStream("/fixtures/workout-tracked.json").readAllBytes();
+
+        mockMvc.perform(multipart("/upload/process")
+                        .file(new MockMultipartFile("file", "workout-tracked.json", "application/json", workout))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Workout summary")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Sample tracked ride")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("CYCLING_SPORT")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("TRACK_MOBILE")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("2:09:45")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("34.0")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("33.9")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("not present in file"))));
+    }
+
+    @Test
+    void manualWorkoutUploadMarksMissingMetricsAsAbsent() throws Exception {
+        byte[] workout = getClass().getResourceAsStream("/fixtures/workout-manual.json").readAllBytes();
+
+        mockMvc.perform(multipart("/upload/process")
+                        .file(new MockMultipartFile("file", "workout-manual.json", "application/json", workout))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Workout summary")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Sample manual walk")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("6.6")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("not present in file")));
+    }
+
+    @Test
     void wrongShapeJsonRendersInvalidFormatMessage() throws Exception {
         mockMvc.perform(multipart("/upload/process")
                         .file(new MockMultipartFile("file", "not-a-workout.json", "application/json", "{}".getBytes()))
@@ -41,7 +74,9 @@ public class UploadFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("upload"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString(
-                        "Invalid JSON content in uploaded file: &quot;not-a-workout.json&quot;")));
+                        "Invalid JSON content in uploaded file: &quot;not-a-workout.json&quot;")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("Workout summary"))));
     }
 
 }

@@ -45,6 +45,7 @@ public class UploadController extends BaseController {
                 EndomondoJson endomondoJson = endomondoJsonParser.parse(file.getBytes());
                 logger.debug("Processed file " + file + ": " + endomondoJson);
                 infoMessages.add(message("infoMessage.form.processed", file.getOriginalFilename()));
+                modelAndView.addObject("summary", WorkoutSummary.from(endomondoJson));
             } catch (InvalidWorkoutJsonException e) {
                 logger.debug("Exception occurred (handled, probably incorrect file format recognized): ", e);
                 errorMessages.add(message("errorMessage.form.invalidJsonFormat", file.getOriginalFilename()));

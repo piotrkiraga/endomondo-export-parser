@@ -23,6 +23,25 @@
                     <button type="submit" class="btn btn-primary" th:text="#{form.upload.submit}">Submit</button>
                 </form>
 
+                <div th:if="${summary != null}" class="card my-4">
+                    <div class="card-header" th:text="#{summary.header}">Workout summary</div>
+                    <table class="table table-sm mb-0">
+                        <tr><th th:text="#{summary.name}">Name</th><td th:text="${summary.name} ?: #{summary.absent}"/></tr>
+                        <tr><th th:text="#{summary.sport}">Sport</th><td th:text="${summary.sport} ?: #{summary.absent}"/></tr>
+                        <tr><th th:text="#{summary.source}">Source</th><td th:text="${summary.source} ?: #{summary.absent}"/></tr>
+                        <tr><th th:text="#{summary.startTime}">Start time</th><td th:text="${summary.startTime} ?: #{summary.absent}"/></tr>
+                        <tr><th th:text="#{summary.duration}">Duration</th><td th:text="${summary.duration} ?: #{summary.absent}"/></tr>
+                        <tr><th th:text="#{summary.distance}">Distance (km)</th><td th:text="${summary.distanceKm} ?: #{summary.absent}"/></tr>
+                        <tr><th th:text="#{summary.calories}">Calories (kcal)</th><td th:text="${summary.caloriesKcal} ?: #{summary.absent}"/></tr>
+                        <tr><th th:text="#{summary.speedAvg}">Average speed (km/h)</th><td th:text="${summary.speedAvgKmh} ?: #{summary.absent}"/></tr>
+                        <tr><th th:text="#{summary.speedMax}">Maximum speed (km/h)</th><td th:text="${summary.speedMaxKmh} ?: #{summary.absent}"/></tr>
+                        <tr><th th:text="#{summary.altitudeMin}">Minimum altitude (m)</th><td th:text="${summary.altitudeMinM} ?: #{summary.absent}"/></tr>
+                        <tr><th th:text="#{summary.altitudeMax}">Maximum altitude (m)</th><td th:text="${summary.altitudeMaxM} ?: #{summary.absent}"/></tr>
+                        <tr><th th:text="#{summary.points}">GPS points</th><td th:text="${summary.pointCount}"/></tr>
+                        <tr><th th:text="#{summary.pointsWithLocation}">Points with full location</th><td th:text="${summary.pointsWithLocationCount}"/></tr>
+                    </table>
+                </div>
+
             </div>
         </div>
     </div>
