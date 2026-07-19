@@ -1,9 +1,5 @@
 <html xmlns:th="http://www.w3.org/1999/xhtml">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-    <title th:text="#{title.error}"/>
-</head>
+<head th:replace="fragments/head :: head(#{title.error})"></head>
 <body>
 
 <div th:replace="fragments/header :: header(#{title.error})"/>

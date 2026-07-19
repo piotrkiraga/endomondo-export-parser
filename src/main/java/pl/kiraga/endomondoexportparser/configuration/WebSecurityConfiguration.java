@@ -22,7 +22,8 @@ public class WebSecurityConfiguration {
             "/error",
             "/home",
             "/upload",
-            "/upload/process"
+            "/upload/process",
+            "/webjars/**"
     };
 
     @Bean

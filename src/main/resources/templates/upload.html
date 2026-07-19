@@ -1,9 +1,5 @@
 <html xmlns:th="http://www.w3.org/1999/xhtml">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-    <title th:text="#{title.upload}"/>
-</head>
+<head th:replace="fragments/head :: head(#{title.upload})"></head>
 <body>
 
 <div th:replace="fragments/header :: header(#{title.upload})"/>
@@ -15,13 +11,17 @@
 
                 <span th:replace="fragments/messages-errors"/>
 
-                <form action="#" th:action="@{/upload/process}" method="post" enctype="multipart/form-data">
-                    <div class="form-group">
-                        <label for="file" th:text="#{form.upload.file.label}">File to upload:</label>
-                        <input type="file" name="file" id="file" class="form-control-file"/>
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form th:action="@{/upload/process}" method="post" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="file" class="form-label" th:text="#{form.upload.file.label}">File containing Endomondo activity export in JSON format:</label>
+                                <input type="file" name="file" id="file" class="form-control"/>
+                            </div>
+                            <button type="submit" class="btn btn-primary" th:text="#{form.upload.submit}">Submit</button>
+                        </form>
                     </div>
-                    <button type="submit" class="btn btn-primary" th:text="#{form.upload.submit}">Submit</button>
-                </form>
+                </div>
 
                 <div th:if="${summary != null}" class="card my-4">
                     <div class="card-header" th:text="#{summary.header}">Workout summary</div>

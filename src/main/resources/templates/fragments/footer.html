@@ -1,22 +1,14 @@
 <html xmlns:th="http://www.w3.org/1999/xhtml">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-    <title th:text="Footer templating fragment"/>
+    <title>Footer templating fragment</title>
 </head>
 <body>
 
-<section class="my-5" th:fragment="footer">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-10 mx-auto">
-
-                <span th:text="#{footer.copyright}"/>, <span th:text="#{application.name}" />, v<span th:text="#{application.version}" />.
-
-            </div>
-        </div>
+<footer class="border-top py-3 mt-5" th:fragment="footer">
+    <div class="container text-body-secondary small">
+        <span th:text="#{footer.copyright}"/>, <span th:text="#{application.name}" />, v<span th:text="#{application.version}" />.
     </div>
-</section>
+</footer>
 
 </body>
 </html>
