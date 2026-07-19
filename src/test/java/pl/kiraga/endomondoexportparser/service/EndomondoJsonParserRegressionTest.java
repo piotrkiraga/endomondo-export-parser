@@ -2,6 +2,7 @@ package pl.kiraga.endomondoexportparser.service;
 
 import org.junit.jupiter.api.Test;
 import pl.kiraga.endomondoexportparser.format.json.EndomondoJson;
+import pl.kiraga.endomondoexportparser.format.json.Picture;
 import pl.kiraga.endomondoexportparser.format.json.Point;
 
 import java.nio.charset.StandardCharsets;
@@ -94,6 +95,43 @@ public class EndomondoJsonParserRegressionTest {
         assertNotNull(second.getTimestamp());
         assertNotNull(second.getLocation().getLatitude());
         assertNotNull(second.getLocation().getLongitude());
+    }
+
+    // --- Pictures ---
+
+    @Test
+    void pictureBearingFixtureParsesItsPictures() throws Exception {
+        EndomondoJson result = parser.parse(fixture("workout-with-pictures.json"));
+
+        List<Picture> pictures = result.getPictures();
+        assertEquals(2, pictures.size());
+
+        Picture located = pictures.get(0);
+        assertEquals("2015-04-11 14:34:19.0", located.getCreated_date());
+        assertEquals("resources/gfx/image/10000001/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/big.jpg", located.getUrl());
+        assertEquals(47.503382, located.getPoint().getLatitude());
+        assertEquals(14.903374, located.getPoint().getLongitude());
+
+        // 69 of the archive's 80 pictures carry no point; those fall back to other sources
+        Picture unlocated = pictures.get(1);
+        assertEquals("2015-04-11 14:51:02.0", unlocated.getCreated_date());
+        assertEquals("resources/gfx/image/10000002/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/big.jpg", unlocated.getUrl());
+        assertNull(unlocated.getPoint());
+    }
+
+    @Test
+    void workoutWithoutPicturesYieldsEmptyList() throws Exception {
+        EndomondoJson result = parser.parse(fixture("workout-manual.json"));
+
+        assertTrue(result.getPictures().isEmpty());
+    }
+
+    @Test
+    void pictureParsingDoesNotDisturbPoints() throws Exception {
+        EndomondoJson result = parser.parse(fixture("workout-with-pictures.json"));
+
+        assertEquals(1, result.getPoints().size());
+        assertEquals(47.503514, result.getPoints().get(0).getLocation().getLatitude());
     }
 
     // --- Scalar fields and points from minimal documents ---

@@ -68,6 +68,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-quartz</artifactId>
         </dependency>
+        <dependency>
+            <!-- Writes EXIF GPS into photo copies; the archive's JPEGs have no EXIF segment at
+                 all, so the structure must be created rather than edited (see PhotoGeotagger) -->
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-imaging</artifactId>
+            <version>1.0.0-alpha5</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

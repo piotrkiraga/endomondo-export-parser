@@ -32,5 +32,6 @@ public class EndomondoJson {
     private Double descend_m;
 
     List<Point> points = new ArrayList<>();
+    List<Picture> pictures = new ArrayList<>();
 
 }

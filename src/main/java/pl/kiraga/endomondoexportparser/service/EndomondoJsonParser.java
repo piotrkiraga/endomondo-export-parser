@@ -23,6 +23,10 @@ public class EndomondoJsonParser {
 
     private static final String POINTS = "points";
     private static final String LOCATION = "location";
+    private static final String PICTURES = "pictures";
+    private static final String PICTURE = "picture";
+    private static final String POINT = "point";
+    private static final String URL = "url";
 
     private final JsonMapper mapper = JsonMapper.builder().build();
 
@@ -43,6 +47,7 @@ public class EndomondoJsonParser {
         try {
             ObjectNode workout = mergeSingleKeyObjects(root);
             workout.set(POINTS, normalizePoints(workout.get(POINTS)));
+            workout.set(PICTURES, normalizePictures(workout.get(PICTURES)));
             return mapper.treeToValue(workout, EndomondoJson.class);
         } catch (JacksonException e) {
             throw new InvalidWorkoutJsonException("JSON does not match the workout export structure", e);
@@ -64,6 +69,42 @@ public class EndomondoJsonParser {
                 point.set(LOCATION, mergeSingleKeyObjects(location.get(0)));
             }
             normalized.add(point);
+        }
+
+        return normalized;
+
+    }
+
+    /**
+     * Pictures follow the points shape, with two further nestings: the file reference
+     * sits in "picture" as [[{"url": ...}]] and is lifted to a flat "url", and "point"
+     * is merged like a point's "location". Most pictures carry no point.
+     */
+    private ArrayNode normalizePictures(JsonNode picturesNode) {
+
+        ArrayNode normalized = mapper.createArrayNode();
+        if (picturesNode == null || !picturesNode.isArray()) {
+            return normalized;
+        }
+
+        for (JsonNode pictureWrapper : picturesNode) {
+            ObjectNode picture = mergeSingleKeyObjects(pictureWrapper);
+
+            JsonNode file = picture.get(PICTURE);
+            if (file != null && file.isArray() && !file.isEmpty()) {
+                JsonNode url = mergeSingleKeyObjects(file.get(0)).get(URL);
+                if (url != null) {
+                    picture.set(URL, url);
+                }
+            }
+            picture.remove(PICTURE);
+
+            JsonNode point = picture.get(POINT);
+            if (point != null && point.isArray() && !point.isEmpty()) {
+                picture.set(POINT, mergeSingleKeyObjects(point.get(0)));
+            }
+
+            normalized.add(picture);
         }
 
         return normalized;
