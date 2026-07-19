@@ -2,6 +2,8 @@
 
 Archive: 162 workout pairs (JSON + TCX; sources: 94 TRACK_MOBILE, 42 TRACK_SAMSUNG_GEAR, 25 INPUT_MANUAL, 1 IMPORT_GPX), 29 workouts referencing 81 photos via `pictures` entries whose relative URLs resolve inside `resources/gfx/`. Strava intake: TCX/GPX/FIT uploads (25 MB cap) or API; API cannot set TCX-borne names/sports (TCX `Sport` is only Running|Biking|Other) and cannot upload photos. The app is a Boot 4.1 Thymeleaf web app with the parser as its only service.
 
+Target account (verified 2026-07-19 via the claude.ai Strava connector, athlete id 71292278): the account is **active**, with current runs/walks recorded directly in Strava. Consequences: (a) migrated historical activities (2011–2020) coexist with live data, so any verification or reconciliation listing MUST filter by the historical date range, never "list everything"; (b) the read-only connector is the verification channel for the smoke test and post-run reconciliation (task 7.2/7.3) — it can list and inspect activities but cannot upload, so it does not replace the app's own API client and credentials.
+
 ## Goals / Non-Goals
 
 **Goals:**
