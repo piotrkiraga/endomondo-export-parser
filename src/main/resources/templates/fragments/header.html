@@ -23,6 +23,15 @@
                 <li class="nav-item">
                     <a class="nav-link" href="?lang=pl"><span th:text="#{language.pl}">Polski</span></a>
                 </li>
+                <li class="nav-item">
+                    <button id="theme-toggle" type="button" class="nav-link d-flex align-items-center"
+                            th:attr="aria-label=#{theme.toggle}"
+                            aria-label="Switch between light and dark mode">
+                        <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true">
+                            <path d="M13.73 12.02A7 7 0 1 1 3.99 2.27A10.1 10.1 0 0 0 13.73 12.02Z"/>
+                        </svg>
+                    </button>
+                </li>
             </ul>
         </div>
     </nav>

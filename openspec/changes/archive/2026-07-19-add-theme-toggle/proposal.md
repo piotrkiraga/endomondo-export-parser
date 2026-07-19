@@ -6,14 +6,14 @@ The UI now follows the browser's light/dark preference automatically, but the us
 
 - A moon/sun toggle button in the navbar switches Bootstrap's color mode instantly, on every page.
 - The explicit choice persists in the browser (`localStorage`) across pages and visits; while no choice has been made, the automatic `prefers-color-scheme` behavior continues, including reacting to live OS theme changes.
-- The toggle is accessible: a localized label (English and Polish) for assistive technology; the icon is a symbol, not text.
+- The toggle is accessible: a localized label (English and Polish) for assistive technology; the icon is a symbol, not text, and is hidden from screen readers so the label is the only announced name.
 - **Preserved behavior:** everything else — the automatic default for first-time visitors, light fallback without JavaScript, all functionality and text. The existing test suite must stay green unmodified.
 
 ## Non-goals
 
 - No server-side persistence (no cookie, no account setting) — the theme is a per-browser presentation preference, invisible to the server.
 - No third state in the UI (no explicit "auto" button); clearing the stored choice is browser-tooling territory.
-- No icon library dependency — Unicode glyphs suffice for one button.
+- No icon library dependency — two inline SVG shapes suffice for one button.
 
 ## Capabilities
 

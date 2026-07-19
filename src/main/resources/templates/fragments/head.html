@@ -4,10 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.3.7/css/bootstrap.min.css}">
+    <!-- Runs inline before first paint to avoid a flash of the wrong theme. -->
     <script>
-        document.documentElement.setAttribute('data-bs-theme',
-            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        (function () {
+            var stored = localStorage.getItem('theme');
+            document.documentElement.setAttribute('data-bs-theme',
+                (stored === 'light' || stored === 'dark') ? stored
+                    : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        })();
     </script>
+    <script th:src="@{/js/theme.js}" defer></script>
     <title th:text="${title}">Endomondo Export Parser</title>
 </head>
 </html>
