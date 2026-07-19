@@ -39,8 +39,9 @@ Thumbs.db
 # Personal Endomondo/Strava export data — must never be committed
 data/
 
-# Claude Code local (per-machine) settings
+# Per-machine tool settings (paths and ports differ per developer/machine)
 .claude/settings.local.json
+/.mcp.json
 
 # Applications
 *.app
