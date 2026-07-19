@@ -1,25 +1,25 @@
 schema: spec-driven
 
 context: |
-  Brownfield revival of a 2020-era hobby project (last commit Nov 2020).
+  Brownfield revival of a 2020-era hobby project (revived July 2026; original last
+  commit Nov 2020).
 
-  Tech stack: Java (declared target 9 — planned upgrade to 17/21), Spring Boot 2.3.5
-  (planned incremental upgrade to 2.7 then 3.x), Maven (mvnw wrapper), Thymeleaf,
-  Spring Security, war packaging. Package root: pl.kiraga.endomondoexportparser.
+  Tech stack: Java 17, Spring Boot 4.1.0 (on Spring Framework 7; Jackson 3 for JSON),
+  Maven (mvnw wrapper), Thymeleaf, Spring Security, executable jar packaging.
+  Package root: pl.kiraga.endomondoexportparser.
 
   Domain: parsing personal Endomondo activity export files (JSON workouts, TCX) and
-  potentially converting them to GPX/Strava-importable formats. Endomondo shut down
-  in 2020, so the input formats are frozen — golden-file/characterization tests are
-  the preferred safety net.
+  migrating them to Strava. Endomondo shut down in 2020, so the input formats are
+  frozen — golden-file/regression tests are the safety net.
 
-  Known state: core JSON parser in UploadController has known bugs (point properties
-  read from the wrong map); personal export data currently sits uncommitted under
-  src/main/resources/endomondo-strava-exports/ and must never be committed — use
-  small anonymized fixtures instead. Only a context-loads test exists.
+  Known state: the JSON parser (EndomondoJsonParser service, merge-then-bind on
+  Jackson 3) parses real export files correctly, covered by a regression suite.
+  Personal export data lives in git-ignored data/ and must never be committed — use
+  small anonymized fixtures under src/test/resources/fixtures/ instead.
 
-  Conventions: keep changes small and sequential (data hygiene → characterization
-  tests → platform upgrade → parser rewrite → new features). Modernize only code
-  that survives re-scoping.
+  Conventions: keep changes small and sequential. Use full product names in
+  documentation (Spring Boot 4.1, Spring Framework 7, Jackson 3) — never bare
+  shorthand like "Boot" or "Framework 7" without the product name.
 
 rules:
   proposal:
