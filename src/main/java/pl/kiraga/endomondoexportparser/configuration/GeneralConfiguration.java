@@ -2,8 +2,6 @@ package pl.kiraga.endomondoexportparser.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Description;
-import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -19,13 +17,10 @@ import java.util.Locale;
 @Configuration
 public class GeneralConfiguration implements WebMvcConfigurer {
 
-    @Bean
-    @Description("Spring Message Resolver")
-    public ResourceBundleMessageSource messageSource() {
-        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
-        messageSource.addBasenames("messages", "version");
-        return messageSource;
-    }
+    // Message source: Spring Boot's autoconfigured MessageSource (UTF-8 by default),
+    // basenames configured via spring.messages.basename. The previous hand-rolled
+    // ResourceBundleMessageSource read the UTF-8 bundles as ISO-8859-1, garbling
+    // Polish diacritics.
 
     @Bean
     public LocaleResolver localeResolver() {

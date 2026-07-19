@@ -17,10 +17,10 @@
 
                 <form action="#" th:action="@{/upload/process}" method="post" enctype="multipart/form-data">
                     <div class="form-group">
-                        <label for="file">File containing Endomondo activity export in JSON format:</label>
+                        <label for="file" th:text="#{form.upload.file.label}">File to upload:</label>
                         <input type="file" name="file" id="file" class="form-control-file"/>
                     </div>
-                    <button type="submit" class="btn btn-primary">Submit</button>
+                    <button type="submit" class="btn btn-primary" th:text="#{form.upload.submit}">Submit</button>
                 </form>
 
             </div>
