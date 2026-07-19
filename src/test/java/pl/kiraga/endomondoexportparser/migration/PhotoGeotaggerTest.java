@@ -28,8 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class PhotoGeotaggerTest {
 
-    private static final double KRAKOW_LATITUDE = 50.061389;
-    private static final double KRAKOW_LONGITUDE = 19.937222;
+    // deliberately unlike each other, so a latitude/longitude swap cannot pass unnoticed
+    private static final double SAMPLE_LATITUDE = 12.345678;
+    private static final double SAMPLE_LONGITUDE = 65.432100;
     private static final double TOLERANCE = 0.00001;
 
     private final PhotoGeotagger geotagger = new PhotoGeotagger();
@@ -62,11 +63,11 @@ public class PhotoGeotaggerTest {
         Path copy = work.resolve("out/photo.jpg");
 
         GeotaggedPhoto result = geotagger.handOut(source, copy,
-                location(KRAKOW_LATITUDE, KRAKOW_LONGITUDE), location(1.0, 2.0), null);
+                location(SAMPLE_LATITUDE, SAMPLE_LONGITUDE), location(1.0, 2.0), null);
 
         assertEquals(LocationSource.PICTURE_POINT, result.location().source());
         assertTrue(result.stampedNow());
-        assertEquals(KRAKOW_LATITUDE, result.location().latitude(), TOLERANCE);
+        assertEquals(SAMPLE_LATITUDE, result.location().latitude(), TOLERANCE);
     }
 
     @Test
@@ -75,22 +76,22 @@ public class PhotoGeotaggerTest {
         Path copy = work.resolve("out/photo.jpg");
 
         GeotaggedPhoto result = geotagger.handOut(source, copy, null,
-                location(KRAKOW_LATITUDE, KRAKOW_LONGITUDE), null);
+                location(SAMPLE_LATITUDE, SAMPLE_LONGITUDE), null);
 
         assertEquals(LocationSource.WORKOUT_TRACK, result.location().source());
-        assertEquals(KRAKOW_LATITUDE, result.location().latitude(), TOLERANCE);
+        assertEquals(SAMPLE_LATITUDE, result.location().latitude(), TOLERANCE);
     }
 
     @Test
     void existingExifOutranksBothJsonSources(@TempDir Path work) throws Exception {
         Path source = plainJpeg(work.resolve("archive"), "photo.jpg");
         Path stamped = work.resolve("out/photo.jpg");
-        geotagger.handOut(source, stamped, location(KRAKOW_LATITUDE, KRAKOW_LONGITUDE), null, null);
+        geotagger.handOut(source, stamped, location(SAMPLE_LATITUDE, SAMPLE_LONGITUDE), null, null);
 
         Optional<PhotoLocation> resolved = geotagger.resolve(stamped, location(1.0, 2.0), location(3.0, 4.0));
 
         assertEquals(LocationSource.EXIF, resolved.orElseThrow().source());
-        assertEquals(KRAKOW_LATITUDE, resolved.orElseThrow().latitude(), TOLERANCE);
+        assertEquals(SAMPLE_LATITUDE, resolved.orElseThrow().latitude(), TOLERANCE);
     }
 
     @Test
@@ -112,11 +113,11 @@ public class PhotoGeotaggerTest {
         Path source = plainJpeg(work.resolve("archive"), "photo.jpg");
         Path copy = work.resolve("out/photo.jpg");
 
-        geotagger.handOut(source, copy, location(KRAKOW_LATITUDE, KRAKOW_LONGITUDE), null, null);
+        geotagger.handOut(source, copy, location(SAMPLE_LATITUDE, SAMPLE_LONGITUDE), null, null);
 
         PhotoLocation readBack = geotagger.readGpsLocation(copy).orElseThrow();
-        assertEquals(KRAKOW_LATITUDE, readBack.latitude(), TOLERANCE, "latitude must not be swapped with longitude");
-        assertEquals(KRAKOW_LONGITUDE, readBack.longitude(), TOLERANCE);
+        assertEquals(SAMPLE_LATITUDE, readBack.latitude(), TOLERANCE, "latitude must not be swapped with longitude");
+        assertEquals(SAMPLE_LONGITUDE, readBack.longitude(), TOLERANCE);
     }
 
     @Test
@@ -124,7 +125,7 @@ public class PhotoGeotaggerTest {
         Path source = plainJpeg(work.resolve("archive"), "photo.jpg");
         Path copy = work.resolve("out/photo.jpg");
 
-        geotagger.handOut(source, copy, location(KRAKOW_LATITUDE, KRAKOW_LONGITUDE), null, "2015-04-11 14:34:19.0");
+        geotagger.handOut(source, copy, location(SAMPLE_LATITUDE, SAMPLE_LONGITUDE), null, "2015-04-11 14:34:19.0");
 
         JpegImageMetadata metadata = (JpegImageMetadata) Imaging.getMetadata(copy.toFile());
         TiffField timestamp = metadata.findExifValueWithExactMatch(ExifTagConstants.EXIF_TAG_DATE_TIME_ORIGINAL);
@@ -138,7 +139,7 @@ public class PhotoGeotaggerTest {
         Path source = plainJpeg(work.resolve("archive"), "photo.jpg");
         Path copy = work.resolve("out/photo.jpg");
 
-        geotagger.handOut(source, copy, location(KRAKOW_LATITUDE, KRAKOW_LONGITUDE), null, null);
+        geotagger.handOut(source, copy, location(SAMPLE_LATITUDE, SAMPLE_LONGITUDE), null, null);
         byte[] afterFirstPass = Files.readAllBytes(copy);
 
         GeotaggedPhoto second = geotagger.handOut(source, copy, location(1.0, 2.0), location(3.0, 4.0), null);
@@ -154,7 +155,7 @@ public class PhotoGeotaggerTest {
         byte[] before = Files.readAllBytes(source);
 
         geotagger.handOut(source, work.resolve("out/photo.jpg"),
-                location(KRAKOW_LATITUDE, KRAKOW_LONGITUDE), null, "2015-04-11 14:34:19.0");
+                location(SAMPLE_LATITUDE, SAMPLE_LONGITUDE), null, "2015-04-11 14:34:19.0");
 
         assertArrayEquals(before, Files.readAllBytes(source), "archive files are read-only");
         assertTrue(geotagger.readGpsLocation(source).isEmpty(), "the original still has no GPS");
