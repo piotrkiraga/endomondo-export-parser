@@ -21,6 +21,17 @@ dates and sports intact.
 - **Plans a full Strava migration offline.** Point it at an archive directory and it pairs
   every workout's JSON with its TCX and decides what each one should become — without
   credentials and without touching the network.
+- **Hands photos out geotagged and browsable.** Every photo referenced by a workout is
+  grouped, stamped with GPS coordinates in its EXIF (from the photo's own point or the
+  workout's route, whichever is available), and written into a single click-to-enlarge
+  HTML report — openable straight from disk, no server required.
+- **Names the unnamed.** A workout with no title becomes something like "Evening Ride
+  along Vistula in Kraków": time of day, sport, and a reverse-geocoded nearby landmark,
+  resolved via OpenStreetMap and cached so the same real-world place is never looked up
+  twice.
+- **Hosts its own Strava connection.** An OAuth authorization-code flow lets it call
+  Strava's API on your behalf; the migration run itself — uploading tracks, creating
+  activities — is still in progress.
 
 ## Why the `openspec/` directory is the interesting part
 
@@ -46,7 +57,8 @@ instead of being uploaded.
 
 Java 17 · Spring Boot 4.1 (on Spring Framework 7) · Thymeleaf · Spring Security ·
 Jackson 3 · Bootstrap 5.3 served from the jar as a WebJar · Apache Commons Imaging ·
-JUnit 5 with MockMvc · Maven
+OpenStreetMap (Nominatim/Overpass) for reverse geocoding · JUnit 5 with MockMvc and
+`MockRestServiceServer` · Maven
 
 ## Running it
 
@@ -71,9 +83,11 @@ Java 17 or newer is required.
 ./mvnw test
 ```
 
-46 tests covering the parser against anonymized fixtures, the upload flow, localization
-including Polish diacritics, the migration planner, and EXIF geotagging. Tests that need a
-real Endomondo archive skip themselves when one is not present, so a fresh clone runs green.
+130 tests covering the parser against anonymized fixtures, the upload flow, localization
+including Polish diacritics, the migration planner, EXIF geotagging, the Strava API client
+and OAuth flow (via `MockRestServiceServer` — no test touches the real network), and the
+OpenStreetMap reverse-geocoding clients. Tests that need a real Endomondo archive skip
+themselves when one is not present, so a fresh clone runs green.
 
 ## A note on the data
 
@@ -86,13 +100,19 @@ committed.
 The in-memory users in `WebSecurityConfiguration` are development scaffolding from the
 original 2020 codebase, not a real authentication scheme.
 
+Location enrichment sends workout and photo coordinates to OpenStreetMap's public
+Nominatim and Overpass services to resolve place names — the only outbound network calls
+this app makes with archive data. Results are cached locally (`data/location-cache.json`,
+also git-ignored) so the same real-world coordinate is never looked up twice.
+
 ## Status
 
-The parser, web interface, and the credential-free half of the Strava migration — archive
-scanning, planning, sport mapping, and photo geotagging — are done and tested. Over a real
-162-workout archive the planner produces 137 track uploads and 25 manual activities with
-nothing skipped.
+The parser, web interface, and most of the Strava migration are done and tested: archive
+scanning, planning, sport mapping, photo geotagging with its browsable report, location-based
+naming, and the Strava API client with its OAuth connect flow. Over a real 162-workout
+archive the planner produces 137 track uploads and 25 manual activities with nothing skipped.
 
-Still to come: the Strava API client and OAuth flow, the migration ledger and executor, the
-photo handout report, and the migration page. Every write to a real Strava account is gated
-behind an explicit user action, and a dry run is the default path everywhere.
+Still to come: the migration ledger and executor that actually drive uploads, and the
+migration page tying it together. Every write to a real Strava account is gated behind an
+explicit user action, and a dry run is the default path everywhere — the API client itself
+has not yet touched a real Strava account, deliberately: that first contact is a gated step.
