@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.ModelAndView;
 import pl.kiraga.endomondoexportparser.migration.PhotoReport;
 import pl.kiraga.endomondoexportparser.migration.PhotoReportGenerator;
+import pl.kiraga.endomondoexportparser.migration.StravaTokenStore;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,6 +25,7 @@ import java.util.Map;
 public class MigrationController extends BaseController {
 
     private final PhotoReportGenerator photoReportGenerator;
+    private final StravaTokenStore stravaTokenStore;
 
     @Value("${endomondo.archive.root}")
     private String archiveRootProperty;
@@ -31,8 +33,9 @@ public class MigrationController extends BaseController {
     @Value("${endomondo.photo-report.output-directory}")
     private String photoReportOutputDirectory;
 
-    public MigrationController(PhotoReportGenerator photoReportGenerator) {
+    public MigrationController(PhotoReportGenerator photoReportGenerator, StravaTokenStore stravaTokenStore) {
         this.photoReportGenerator = photoReportGenerator;
+        this.stravaTokenStore = stravaTokenStore;
     }
 
     @RequestMapping(value = "/photo-report", method = RequestMethod.GET)
@@ -76,6 +79,7 @@ public class MigrationController extends BaseController {
         modelAndView.addObject("archivePresent", Files.isDirectory(Path.of(archiveRootProperty)));
         modelAndView.addObject("reportPresent",
                 Files.isRegularFile(Path.of(photoReportOutputDirectory, "index.html")));
+        modelAndView.addObject("stravaConnected", stravaTokenStore.load().isPresent());
     }
 
 }
