@@ -1,8 +1,11 @@
 package pl.kiraga.endomondoexportparser.controller;
 
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -11,6 +14,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import pl.kiraga.endomondoexportparser.migration.StravaApiException;
 import pl.kiraga.endomondoexportparser.migration.StravaClient;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -22,12 +26,20 @@ import java.util.UUID;
  * to {@code /strava/callback} with a code this app exchanges for tokens. Nothing here
  * runs except from an explicit click — matching "migration only starts from explicit
  * user action" (see strava-migration spec).
+ * <p>
+ * The CSRF-style {@code state} value round-trips in a short-lived HttpOnly cookie rather
+ * than the HttpSession: this app runs as a single local user, and a session-backed state
+ * doesn't survive a Spring Boot DevTools restart (which recreates the embedded servlet
+ * container's session store) — a restart triggered by an unrelated classpath change while
+ * the browser is away on Strava's authorize page produced a spurious "state mismatch" in
+ * practice. A cookie set directly on the browser has no such dependency on server process
+ * lifetime.
  */
 @Controller
 @RequestMapping("/strava")
 public class StravaOAuthController extends BaseController {
 
-    private static final String STATE_SESSION_KEY = "strava_oauth_state";
+    private static final String STATE_COOKIE_NAME = "strava_oauth_state";
     private static final String REDIRECT_TO_STATUS = "redirect:/migration/photo-report";
 
     private final StravaClient stravaClient;
@@ -43,7 +55,7 @@ public class StravaOAuthController extends BaseController {
     }
 
     @RequestMapping(value = "/connect", method = RequestMethod.GET)
-    public String connect(HttpSession session, RedirectAttributes redirectAttributes) {
+    public String connect(HttpServletResponse response, RedirectAttributes redirectAttributes) {
 
         if (clientId == null || clientId.isBlank()) {
             redirectAttributes.addFlashAttribute("errorMessages",
@@ -52,7 +64,7 @@ public class StravaOAuthController extends BaseController {
         }
 
         String state = UUID.randomUUID().toString();
-        session.setAttribute(STATE_SESSION_KEY, state);
+        response.addHeader(HttpHeaders.SET_COOKIE, stateCookie(state, Duration.ofMinutes(10)).toString());
 
         String authorizeUrl = UriComponentsBuilder.fromUriString("https://www.strava.com/oauth/authorize")
                 .queryParam("client_id", clientId)
@@ -73,14 +85,15 @@ public class StravaOAuthController extends BaseController {
             @RequestParam(name = "code", required = false) String code,
             @RequestParam(name = "state", required = false) String state,
             @RequestParam(name = "error", required = false) String error,
-            HttpSession session,
+            @CookieValue(name = STATE_COOKIE_NAME, required = false) String expectedState,
+            HttpServletResponse response,
             RedirectAttributes redirectAttributes) {
 
         List<String> errorMessages = new ArrayList<>();
         List<String> infoMessages = new ArrayList<>();
 
-        Object expectedState = session.getAttribute(STATE_SESSION_KEY);
-        session.removeAttribute(STATE_SESSION_KEY);
+        // Consumed on first use regardless of outcome, same as the session attribute this replaced.
+        response.addHeader(HttpHeaders.SET_COOKIE, stateCookie("", Duration.ZERO).toString());
 
         if (error != null) {
             errorMessages.add(message("errorMessage.strava.authorizationDenied", error));
@@ -103,6 +116,20 @@ public class StravaOAuthController extends BaseController {
 
         return REDIRECT_TO_STATUS;
 
+    }
+
+    /**
+     * Not marked {@code secure}: {@code endomondo.strava.redirect-uri} is a plain
+     * {@code http://localhost} URL, and a Secure cookie would silently never be sent back
+     * to it.
+     */
+    private static ResponseCookie stateCookie(String value, Duration maxAge) {
+        return ResponseCookie.from(STATE_COOKIE_NAME, value)
+                .httpOnly(true)
+                .sameSite("Lax")
+                .path("/strava")
+                .maxAge(maxAge)
+                .build();
     }
 
 }
