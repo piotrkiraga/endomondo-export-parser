@@ -16,6 +16,11 @@ import java.util.Set;
  */
 public final class SportMapping {
 
+    /*
+     * Target values verified 2026-07-20 against the Strava API v3 SportType enumeration:
+     * Ride, Run, Walk and Hike are all exact members. CYCLING_TRANSPORTATION maps to plain
+     * Ride rather than EBikeRide or GravelRide — commuting says nothing about the bike.
+     */
     private static final Map<String, String> ENDOMONDO_TO_STRAVA = Map.of(
             "CYCLING_SPORT", "Ride",
             "CYCLING_TRANSPORTATION", "Ride",

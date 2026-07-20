@@ -5,7 +5,7 @@
 
 ## 2. Archive survey and sport mapping
 
-- [x] 2.1 Enumerate every distinct `sport` value across the real archive; build the total Endomondo→Strava sport-type mapping as a reviewed table in code, consulting current Strava sport types at developers.strava.com (verify: unit test asserts every archive sport value maps) — five values found: CYCLING_SPORT 107, RUNNING 26, WALKING 24, HIKING 3, CYCLING_TRANSPORTATION 2. Sport type values still to be confirmed against developers.strava.com before the smoke test in 7.2
+- [x] 2.1 Enumerate every distinct `sport` value across the real archive; build the total Endomondo→Strava sport-type mapping as a reviewed table in code, consulting current Strava sport types at developers.strava.com (verify: unit test asserts every archive sport value maps) — five values found: CYCLING_SPORT 107, RUNNING 26, WALKING 24, HIKING 3, CYCLING_TRANSPORTATION 2, mapping to Ride/Run/Walk/Hike — all four confirmed 2026-07-20 as exact members of the Strava API v3 SportType enumeration
 
 ## 3. Strava client and OAuth
 
