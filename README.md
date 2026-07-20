@@ -83,7 +83,7 @@ Java 17 or newer is required.
 ./mvnw test
 ```
 
-130 tests covering the parser against anonymized fixtures, the upload flow, localization
+129 tests covering the parser against anonymized fixtures, the upload flow, localization
 including Polish diacritics, the migration planner, EXIF geotagging, the Strava API client
 and OAuth flow (via `MockRestServiceServer` — no test touches the real network), and the
 OpenStreetMap reverse-geocoding clients. Tests that need a real Endomondo archive skip
