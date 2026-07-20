@@ -35,6 +35,21 @@ After an activity exists, the migration SHALL set its name from the JSON `name` 
 - **WHEN** a workout carries a sport value missing from the mapping
 - **THEN** the workout is reported as skipped-with-reason and the migration continues
 
+### Requirement: Generated names and descriptions are enriched with the workout's approximate location
+When a workout's name is generated (not JSON-supplied) and its starting coordinates resolve to a notable nearby feature (a river/water body, a historic site or landmark, a park, or a named boulevard) via reverse geocoding, the migration SHALL append that place to the generated name, and SHALL append a corresponding sentence to the activity description. Enrichment SHALL never modify a JSON-supplied name. A geocoding failure or an absent nearby feature SHALL NOT block the workout; the name and description fall back to their un-enriched form.
+
+#### Scenario: Generated name gains a place
+- **WHEN** an unnamed evening ride starts near a river named "Vistula" in a city named "Kraków"
+- **THEN** the generated name is "Evening Ride along Vistula in Kraków"
+
+#### Scenario: JSON-supplied names are left alone
+- **WHEN** a workout titled "Sample tracked ride" starts near a notable nearby feature
+- **THEN** the migrated activity's name remains exactly "Sample tracked ride"
+
+#### Scenario: Geocoding failure does not block migration
+- **WHEN** the reverse-geocoding service is unreachable or returns no result for a workout's coordinates
+- **THEN** the workout is still migrated, with its plain generated name and un-enriched description
+
 ### Requirement: The migration respects Strava rate limits and resumes
 The migration SHALL throttle below Strava's published rate limits, back off on 429 responses, and on interruption resume from the ledger without repeating completed work.
 

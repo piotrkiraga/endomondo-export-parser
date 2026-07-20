@@ -36,11 +36,14 @@ public class PhotoReportGenerator {
     private final ArchiveScanner scanner;
     private final EndomondoJsonParser parser;
     private final PhotoGeotagger geotagger;
+    private final PlaceLookup placeLookup;
 
-    public PhotoReportGenerator(ArchiveScanner scanner, EndomondoJsonParser parser, PhotoGeotagger geotagger) {
+    public PhotoReportGenerator(ArchiveScanner scanner, EndomondoJsonParser parser, PhotoGeotagger geotagger,
+                                 PlaceLookup placeLookup) {
         this.scanner = scanner;
         this.parser = parser;
         this.geotagger = geotagger;
+        this.placeLookup = placeLookup;
     }
 
     /**
@@ -65,7 +68,7 @@ public class PhotoReportGenerator {
             Location workoutFirstPoint = parsed.getPoints().isEmpty()
                     ? null : parsed.getPoints().get(0).getLocation();
 
-            List<GeotaggedPhoto> photos = new ArrayList<>();
+            List<CaptionedPhoto> photos = new ArrayList<>();
             for (Picture picture : parsed.getPictures()) {
                 if (picture.getUrl() == null) {
                     continue;
@@ -75,17 +78,26 @@ public class PhotoReportGenerator {
 
                 Path source = archiveRoot.resolve(relative);
                 Path copy = photoCopiesDirectory.resolve(relative);
-                photos.add(geotagger.handOut(source, copy, picture.getPoint(), workoutFirstPoint,
-                        picture.getCreated_date()));
+                GeotaggedPhoto geotagged = geotagger.handOut(source, copy, picture.getPoint(), workoutFirstPoint,
+                        picture.getCreated_date());
+                PlaceDescription photoPlace = geotagged.hasLocation()
+                        ? placeLookup.lookup(geotagged.location().latitude(), geotagged.location().longitude()).orElse(null)
+                        : null;
+                photos.add(new CaptionedPhoto(geotagged, photoPlace));
             }
             if (photos.isEmpty()) {
                 continue;
             }
 
+            PlaceDescription workoutPlace = workoutFirstPoint == null ? null
+                    : placeLookup.lookup(workoutFirstPoint.getLatitude(), workoutFirstPoint.getLongitude()).orElse(null);
+
             groups.add(new PhotoGroup(
                     workout.basename(),
                     parsed.getName(),
                     parsed.getStart_time(),
+                    SportMapping.stravaSportType(parsed.getSport()).orElse(null),
+                    workoutPlace,
                     Optional.ofNullable(activityIdsByBasename.get(workout.basename())),
                     List.copyOf(photos)));
         }
@@ -146,28 +158,34 @@ public class PhotoReportGenerator {
                 .append(".meta{color:#666;font-size:.85em;margin-bottom:.6em}")
                 .append(".photos{display:flex;flex-wrap:wrap;gap:.6em}")
                 .append(".photos figure{margin:0;width:220px}")
-                .append(".photos img{width:220px;height:auto;display:block;border:1px solid #ccc}")
+                .append(".photos img{width:220px;height:auto;display:block;border:1px solid #ccc;cursor:zoom-in}")
                 .append(".photos figcaption{font-size:.75em;color:#666}")
                 .append(".no-location{color:#b00}")
+                .append(".basename{color:#999}")
                 .append(".unmatched li{font-family:monospace;font-size:.85em}")
+                .append("#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);")
+                .append("align-items:center;justify-content:center;z-index:999;cursor:zoom-out}")
+                .append("#lightbox.open{display:flex}")
+                .append("#lightbox img{max-width:95vw;max-height:95vh}")
                 .append("</style></head><body>\n")
                 .append("<h1>Endomondo photo handout</h1>\n");
 
         for (PhotoGroup group : report.groups()) {
             html.append("<section class=\"workout\">\n")
-                    .append("<h2>").append(escape(nameOrBasename(group))).append("</h2>\n")
+                    .append("<h2>").append(escape(group.displayName())).append("</h2>\n")
                     .append("<div class=\"meta\">")
                     .append(escape(group.startTime() == null ? "" : group.startTime()))
                     .append(" &mdash; ")
                     .append(activityLink(group.activityId()))
+                    .append(" &mdash; <span class=\"basename\">archive: ").append(escape(group.basename())).append("</span>")
                     .append("</div>\n")
                     .append("<div class=\"photos\">\n");
-            for (GeotaggedPhoto photo : group.photos()) {
-                html.append("<figure><img src=\"").append(relativeHref(reportDir, photo.copy())).append("\" alt=\"\">")
+            for (CaptionedPhoto captioned : group.photos()) {
+                String href = relativeHref(reportDir, captioned.photo().copy());
+                String caption = caption(captioned);
+                html.append("<figure><img src=\"").append(href).append("\" alt=\"\" onclick=\"openLightbox(this.src)\">")
                         .append("<figcaption>")
-                        .append(photo.hasLocation()
-                                ? photo.location().source().toString()
-                                : "<span class=\"no-location\">no location available</span>")
+                        .append(caption != null ? escape(caption) : "<span class=\"no-location\">no location available</span>")
                         .append("</figcaption></figure>\n");
             }
             html.append("</div></section>\n");
@@ -181,6 +199,11 @@ public class PhotoReportGenerator {
             html.append("</ul></section>\n");
         }
 
+        html.append("<div id=\"lightbox\" onclick=\"this.classList.remove('open')\"><img id=\"lightbox-img\" src=\"\" alt=\"\"></div>\n")
+                .append("<script>function openLightbox(src){")
+                .append("document.getElementById('lightbox-img').src=src;")
+                .append("document.getElementById('lightbox').classList.add('open');}</script>\n");
+
         html.append("</body></html>\n");
 
         try {
@@ -192,8 +215,15 @@ public class PhotoReportGenerator {
 
     }
 
-    private String nameOrBasename(PhotoGroup group) {
-        return (group.name() == null || group.name().isBlank()) ? group.basename() : group.name();
+    /** The resolved place when one was found; otherwise the raw {@link LocationSource}, or null (no location at all). */
+    private String caption(CaptionedPhoto captioned) {
+        if (captioned.place() != null) {
+            return "Recorded " + captioned.place().phrase();
+        }
+        if (captioned.photo().hasLocation()) {
+            return captioned.photo().location().source().toString();
+        }
+        return null;
     }
 
     private String activityLink(Optional<String> activityId) {

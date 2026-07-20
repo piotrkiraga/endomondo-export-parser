@@ -43,6 +43,12 @@
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
         <dependency>
+            <!-- RestClient.Builder autoconfiguration: Boot 4 split this out of the webmvc
+                 starter; needed for the Nominatim/Overpass HTTP clients (and, later, Strava's) -->
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>

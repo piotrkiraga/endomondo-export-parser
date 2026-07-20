@@ -41,6 +41,17 @@ Resolving EXIF first makes re-generation idempotent: a copy stamped by an earlie
 - **WHEN** a photo has no EXIF GPS, no picture `point`, and its workout has no track points
 - **THEN** the copy is handed out ungeotagged and the report marks it as having no available location
 
+### Requirement: Photos can be viewed at full size and are captioned with their approximate place
+Clicking a photo thumbnail in the report SHALL display it at full size without navigating away from the report. When a photo's resolved location reverse-geocodes to a place (city/suburb, optionally with a notable nearby feature), the report SHALL show that place as the photo's caption instead of the raw location-source label; when no place is available, the caption SHALL fall back to indicating the location's source or absence, as before.
+
+#### Scenario: Thumbnail opens full size in place
+- **WHEN** the user clicks a photo thumbnail
+- **THEN** the full-resolution photo is displayed in an overlay on the same page, closable without leaving the report
+
+#### Scenario: Caption shows the resolved place
+- **WHEN** a photo's coordinates reverse-geocode to "Kraków" with a nearby feature "Wawel Castle"
+- **THEN** the photo's caption reads a description including "Wawel Castle" and "Kraków"
+
 ### Requirement: The report is a self-contained local file
 The report SHALL be written as a single HTML file under `data/` (git-ignored, since photos are personal data), openable directly in a browser with images loading from the local archive.
 

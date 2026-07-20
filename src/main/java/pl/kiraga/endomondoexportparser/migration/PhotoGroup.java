@@ -11,6 +11,14 @@ public record PhotoGroup(
         String basename,
         String name,
         String startTime,
+        String stravaSportType,
+        PlaceDescription place,
         Optional<String> activityId,
-        List<GeotaggedPhoto> photos) {
+        List<CaptionedPhoto> photos) {
+
+    /** The name as it will appear once migrated: the JSON name, or the generated fallback. */
+    public String displayName() {
+        return WorkoutNaming.resolve(name, startTime, stravaSportType, place);
+    }
+
 }
