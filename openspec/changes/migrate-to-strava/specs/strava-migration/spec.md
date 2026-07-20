@@ -21,11 +21,15 @@ For `INPUT_MANUAL` workouts, the migration SHALL create a manual activity (name,
 - **THEN** a manual activity is created from the JSON metadata and no TCX upload occurs for it
 
 ### Requirement: Metadata transfers from the workout JSON
-After an activity exists, the migration SHALL set its name from the JSON `name` and its sport type via a total mapping from every Endomondo sport value present in the archive to a Strava sport type, and SHALL mark the activity description with a migration note including the original workout date.
+After an activity exists, the migration SHALL set its name from the JSON `name` — or, when that is blank, from a generated "{time of day} {sport}" name derived from the workout's local start hour and mapped Strava sport type — and its sport type via a total mapping from every Endomondo sport value present in the archive to a Strava sport type, and SHALL mark the activity description with a migration note including the original workout date.
 
 #### Scenario: Name and sport applied
 - **WHEN** a workout titled "Sample tracked ride" with sport CYCLING_SPORT is migrated
 - **THEN** the Strava activity is renamed "Sample tracked ride" with sport type Ride
+
+#### Scenario: Unnamed workout gets a generated name
+- **WHEN** a workout with no JSON `name`, sport RUNNING, and a start time of 07:15 is migrated
+- **THEN** the Strava activity is named "Morning Run"
 
 #### Scenario: Unmapped sport halts that workout, not the run
 - **WHEN** a workout carries a sport value missing from the mapping

@@ -9,7 +9,7 @@
 
 ## 3. Strava client and OAuth
 
-- [ ] 3.1 Strava API client on `RestClient`: token refresh, TCX upload + status polling, manual activity create, activity update; env-var credentials; tokens persisted to `data/strava-tokens.json` (verify: unit tests against `MockRestServiceServer` for each call incl. 429 backoff and duplicate-rejection handling)
+- [ ] 3.1 Strava API client on `RestClient`: token refresh, TCX upload + status polling, manual activity create, activity update; env-var credentials; tokens persisted to `data/strava-tokens.json` (verify: unit tests against `MockRestServiceServer` for each call incl. 429 backoff and duplicate-rejection handling). Naming falls back to "{time of day} {sport}" when the JSON `name` is blank — decided 2026-07-20, see design.md; 64% of the archive (104/162) needs this.
 - [ ] 3.2 OAuth authorization-code flow: connect button → strava.com authorize → `/strava/callback` exchanges the code and stores tokens (verify: mocked-exchange test; manual browser check deferred to smoke)
 
 ## 4. Migration engine
