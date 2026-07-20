@@ -63,3 +63,4 @@ Ships dark: nothing runs until the user opens the migration page. Rollback of th
 ## Backlog (not blocking, revisit later)
 
 - **`data/` layout needs a pass.** It now mixes the read-only input archive (`endomondo-strava-exports/`) with generated outputs and caches (`photo-report/`, `location-cache.json`) at the same flat level, and will grow further with `strava-tokens.json` (3.1) and `strava-migration-ledger.json` (4.2). Worth a deliberate structure (e.g. separating input from generated/cached output, maybe a short `data/README.md` explaining what's what) once the shape of everything that lives there is known — i.e. after 3.1/4.2 land, not before.
+- **Placeholder favicon wants replacing.** `static/favicon.ico` is a quick programmatically-generated blue circle with a white "E" (added just to stop 404 log noise) — swap it for something more deliberate later.
