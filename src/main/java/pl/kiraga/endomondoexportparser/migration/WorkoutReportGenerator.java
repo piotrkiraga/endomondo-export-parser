@@ -132,7 +132,7 @@ public class WorkoutReportGenerator {
                 .append(".workout.skip{background:#fff8f0;border-color:#e8d5b5}")
                 .append(".workout h2{font-size:1em;margin:0 0 .3em}")
                 .append(".meta{color:#666;font-size:.85em;margin-bottom:.4em}")
-                .append(".description{font-size:.9em;color:#333;margin:.4em 0}")
+                .append(".description{font-size:.9em;color:#333;margin:.4em 0;white-space:pre-wrap}")
                 .append(".action{display:inline-block;font-size:.75em;padding:.1em .5em;border-radius:.3em;color:#fff}")
                 .append(".action.upload{background:#2a7}")
                 .append(".action.manual{background:#38a}")

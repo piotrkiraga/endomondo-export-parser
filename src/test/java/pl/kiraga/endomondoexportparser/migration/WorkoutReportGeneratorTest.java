@@ -20,6 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class WorkoutReportGeneratorTest {
 
+    private static final String CREDIT_LINE =
+            "Migrated by Piotr Kiraga using endomondo-export-parser: "
+                    + "https://github.com/piotrkiraga/endomondo-export-parser";
     private static final PlaceLookup NO_PLACES = (lat, lon) -> Optional.empty();
     private static final PlaceDescription VISTULA_IN_KRAKOW =
             new PlaceDescription("Kraków", null, new NearbyFeature("Vistula", FeatureKind.WATER, 50));
@@ -56,7 +59,7 @@ public class WorkoutReportGeneratorTest {
         assertEquals("Sample tracked ride", entry.stravaName());
         assertEquals("Ride", entry.stravaSportType());
         assertEquals(34.04, entry.distanceKm());
-        assertEquals("Migrated from Endomondo (recorded 2011-09-10).", entry.stravaDescription());
+        assertEquals("Migrated from Endomondo (recorded 2011-09-10).\n\n" + CREDIT_LINE, entry.stravaDescription());
         assertNull(entry.reason());
     }
 
@@ -100,7 +103,7 @@ public class WorkoutReportGeneratorTest {
         WorkoutReportEntry entry = generator.build(archiveRoot).entries().get(0);
 
         assertEquals("Morning Run", entry.stravaName());
-        assertEquals("Migrated from Endomondo (recorded 2016-02-02).", entry.stravaDescription());
+        assertEquals("Migrated from Endomondo (recorded 2016-02-02).\n\n" + CREDIT_LINE, entry.stravaDescription());
     }
 
     @Test
@@ -117,7 +120,7 @@ public class WorkoutReportGeneratorTest {
         WorkoutReportEntry entry = generatorWith(ALWAYS_VISTULA).build(archiveRoot).entries().get(0);
 
         assertEquals("Morning Run along Vistula in Kraków", entry.stravaName());
-        assertEquals("Migrated from Endomondo (recorded 2016-02-02). Recorded along Vistula in Kraków.",
+        assertEquals("Migrated from Endomondo (recorded 2016-02-02). Recorded along Vistula in Kraków.\n\n" + CREDIT_LINE,
                 entry.stravaDescription());
     }
 

@@ -25,6 +25,10 @@ dates and sports intact.
   grouped, stamped with GPS coordinates in its EXIF (from the photo's own point or the
   workout's route, whichever is available), and written into a single click-to-enlarge
   HTML report — openable straight from disk, no server required.
+- **Previews the migration before anything uploads.** A generated report shows, per
+  workout, exactly what would be sent to Strava — resolved name, sport, description,
+  dates, distance, duration, and whether it uploads as a track or gets created manually —
+  built entirely offline from the same planning logic the real migration will use.
 - **Names the unnamed.** A workout with no title becomes something like "Evening Ride
   along Vistula in Kraków": time of day, sport, and a reverse-geocoded nearby landmark,
   resolved via OpenStreetMap and cached so the same real-world place is never looked up
@@ -47,6 +51,9 @@ folded into the permanent capability specs.
 - [`openspec/changes/migrate-to-strava/`](openspec/changes/migrate-to-strava/) — the change
   in flight.
 
+Day-to-day task status for the change in flight is also tracked on a Jira board (project
+`EEP`); OpenSpec remains the source of truth for requirements and design decisions.
+
 If you want to see how decisions were reasoned about rather than just their outcome, the
 design documents are the place to look. A representative example is the Strava migration's
 [`design.md`](openspec/changes/migrate-to-strava/design.md), which records why tracked and
@@ -66,7 +73,7 @@ OpenStreetMap (Nominatim/Overpass) for reverse geocoding · JUnit 5 with MockMvc
 ./mvnw spring-boot:run
 ```
 
-Then open <http://localhost:8080>. The home and upload pages need no login.
+Then open <http://localhost:8080>. No login is required — see "A note on the data" below.
 
 To build and run the executable jar instead:
 
@@ -83,7 +90,7 @@ Java 17 or newer is required.
 ./mvnw test
 ```
 
-129 tests covering the parser against anonymized fixtures, the upload flow, localization
+139 tests covering the parser against anonymized fixtures, the upload flow, localization
 including Polish diacritics, the migration planner, EXIF geotagging, the Strava API client
 and OAuth flow (via `MockRestServiceServer` — no test touches the real network), and the
 OpenStreetMap reverse-geocoding clients. Tests that need a real Endomondo archive skip
@@ -97,8 +104,10 @@ photo references are replaced with synthetic ones. Strava credentials are suppli
 the `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET` environment variables and are never
 committed.
 
-The in-memory users in `WebSecurityConfiguration` are development scaffolding from the
-original 2020 codebase, not a real authentication scheme.
+Login is disabled entirely — `WebSecurityConfiguration` permits every request. The app is
+built for single-user, localhost-only use; the original in-memory placeholder accounts were
+never a real authentication scheme, so removing them removed nothing meaningful. Revisit
+this if the app is ever meant to bind beyond `localhost`.
 
 Location enrichment sends workout and photo coordinates to OpenStreetMap's public
 Nominatim and Overpass services to resolve place names — the only outbound network calls
@@ -108,9 +117,10 @@ also git-ignored) so the same real-world coordinate is never looked up twice.
 ## Status
 
 The parser, web interface, and most of the Strava migration are done and tested: archive
-scanning, planning, sport mapping, photo geotagging with its browsable report, location-based
-naming, and the Strava API client with its OAuth connect flow. Over a real 162-workout
-archive the planner produces 137 track uploads and 25 manual activities with nothing skipped.
+scanning, planning, sport mapping, photo geotagging with its browsable report, the offline
+workout preview report, location-based naming, and the Strava API client with its OAuth
+connect flow. Over a real 162-workout archive the planner produces 137 track uploads and
+25 manual activities with nothing skipped.
 
 Still to come: the migration ledger and executor that actually drive uploads, and the
 migration page tying it together. Every write to a real Strava account is gated behind an
