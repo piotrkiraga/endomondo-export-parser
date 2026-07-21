@@ -12,6 +12,10 @@ import java.util.Optional;
  * Nominatim. Self-throttled to Nominatim's usage-policy limit of one request per
  * second; any failure (network error, no result) degrades to {@code Optional.empty()}
  * rather than throwing, since a missing place must never block a workout's migration.
+ * The injected {@code builder} carries connect/read timeouts from {@code spring.http.clients.*}
+ * (see application.properties) — set globally rather than per-client so
+ * {@code MockRestServiceServer.bindTo(builder)} in tests isn't overridden by a competing
+ * {@code requestFactory()} call here.
  */
 @Service
 public class NominatimClient {

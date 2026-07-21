@@ -18,6 +18,11 @@ import java.util.Optional;
  * within a small radius of a coordinate, via OpenStreetMap's Overpass API. Only the
  * single best-ranked feature is surfaced — see {@link FeatureKind}'s priority order —
  * which is enough to name "the river it runs along", not a full survey of the area.
+ * The injected {@code builder} carries connect/read timeouts from {@code spring.http.clients.*}
+ * (see application.properties) — set globally rather than per-client so
+ * {@code MockRestServiceServer.bindTo(builder)} in tests isn't overridden by a competing
+ * {@code requestFactory()} call here. The read timeout there must clear this class's own
+ * 25s Overpass server-side execution budget (see {@link #query}).
  */
 @Service
 public class OverpassClient {

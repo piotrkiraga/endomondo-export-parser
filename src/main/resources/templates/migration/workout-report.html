@@ -1,0 +1,50 @@
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<head th:replace="fragments/head :: head(#{title.migrationWorkoutReport})"></head>
+<body>
+
+<div th:replace="fragments/header :: header(#{title.migrationWorkoutReport})"/>
+
+<section class="my-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-10 mx-auto">
+
+                <span th:replace="fragments/messages-errors"/>
+
+                <div class="mb-4">
+                    <span th:if="${stravaConnected}" class="badge text-bg-success" th:text="#{strava.connected}">Connected to Strava</span>
+                    <th:block th:unless="${stravaConnected}">
+                        <a class="btn btn-sm btn-outline-primary" th:href="@{/strava/connect}" th:text="#{strava.connect}">Connect to Strava</a>
+                        <span class="badge text-bg-secondary ms-2" th:text="#{strava.notConnected}">Not connected to Strava</span>
+                    </th:block>
+                </div>
+
+                <p th:text="#{migration.workoutReport.description}">
+                    Preview exactly what would be sent to Strava, without sending anything.
+                </p>
+
+                <div th:unless="${archivePresent}" class="alert alert-warning"
+                     th:text="#{migration.photoReport.archiveMissing(${archiveRoot})}">
+                    Archive not found
+                </div>
+
+                <form th:if="${archivePresent}" th:action="@{/migration/workout-report/generate}" method="post">
+                    <button type="submit" class="btn btn-primary" th:text="#{migration.workoutReport.generate}">
+                        Generate report
+                    </button>
+                </form>
+
+                <p class="mt-3" th:if="${workoutReportPresent}">
+                    <a th:href="@{/workout-report/index.html}" target="_blank" rel="noopener"
+                       th:text="#{migration.workoutReport.open}">Open report</a>
+                </p>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<div th:replace="fragments/footer :: footer"/>
+
+</body>
+</html>

@@ -9,6 +9,7 @@ The parser now reads the frozen Endomondo archive end-to-end, but the archive st
 - Migration ledger persisted under `data/` (git-ignored, like all personal data) recording workout → Strava activity id, enabling resume and re-run without duplicates.
 - **Photo handout report**: a generated HTML file listing, per migrated activity, its photos (embedded from the local archive) next to a direct link to the created Strava activity — so photos can be added manually in the Strava apps with zero searching. Photos are the one thing the API cannot transfer.
 - **Location enrichment** (added mid-flight, 2026-07-20): workout names/descriptions and photo captions are enriched with real-world places — reverse-geocoded via OpenStreetMap (Nominatim for locality, Overpass for a nearby notable feature) and cached locally so repeat coordinates cost nothing. An unnamed workout becomes e.g. "Evening Ride along Vistula in Kraków" instead of just "Evening Ride".
+- **Workout report** (added mid-flight, 2026-07-20): a generated HTML preview, per workout, of exactly what would be sent to Strava — resolved name, sport type, description, dates, distance, and upload/manual/skip action — built entirely from the local plan with zero Strava calls, the same dry-run guarantee task 4.4 already gives the planner.
 - Dry-run mode: full plan (what would upload, as what sport, with which photos flagged) with zero API calls.
 - Web UI: one migration page (connect, dry-run preview, execute with progress, link to report) in the existing Thymeleaf style.
 
