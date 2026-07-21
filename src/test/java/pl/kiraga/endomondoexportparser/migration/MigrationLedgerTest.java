@@ -70,6 +70,31 @@ public class MigrationLedgerTest {
     }
 
     @Test
+    void markSkippedIsDurableAcrossInstancesAndIsNotIsDone(@TempDir Path dir) {
+        Path file = dir.resolve("ledger.json");
+        new MigrationLedger(file, FIXED).markSkipped("2011-09-10 12_58_59.0", PlannedAction.UPLOAD_TCX);
+
+        MigrationLedger resumed = new MigrationLedger(file, FIXED);
+
+        assertTrue(resumed.isSkipped("2011-09-10 12_58_59.0"));
+        assertFalse(resumed.isDone("2011-09-10 12_58_59.0"), "skipped is a distinct state from done");
+        assertEquals(LedgerStatus.SKIPPED, resumed.find("2011-09-10 12_58_59.0").orElseThrow().status());
+    }
+
+    @Test
+    void markingPendingAfterASkipOverridesItForAForcedRemigration(@TempDir Path dir) {
+        MigrationLedger ledger = ledgerAt(dir);
+        ledger.markSkipped("2011-09-10 12_58_59.0", PlannedAction.UPLOAD_TCX);
+        assertTrue(ledger.isSkipped("2011-09-10 12_58_59.0"));
+
+        ledger.markPending("2011-09-10 12_58_59.0", PlannedAction.UPLOAD_TCX);
+        ledger.markDone("2011-09-10 12_58_59.0", 55L);
+
+        assertFalse(ledger.isSkipped("2011-09-10 12_58_59.0"));
+        assertTrue(ledger.isDone("2011-09-10 12_58_59.0"));
+    }
+
+    @Test
     void markFailedRecordsTheReasonAndLeavesItRetryable(@TempDir Path dir) {
         MigrationLedger ledger = ledgerAt(dir);
         ledger.markPending("2011-09-10 12_58_59.0", PlannedAction.UPLOAD_TCX);

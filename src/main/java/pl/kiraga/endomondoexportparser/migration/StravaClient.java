@@ -194,13 +194,29 @@ public class StravaClient {
 
     }
 
-    /** Sets name/sport type/description on an already-created activity (uploaded or manual). */
+    /** As {@link #updateActivity(long, String, String, String, String)}, with no gear assignment. */
     public StravaActivity updateActivity(long activityId, String name, String sportType, String description) {
+        return updateActivity(activityId, name, sportType, description, null);
+    }
+
+    /**
+     * Sets name/sport type/description on an already-created activity (uploaded or
+     * manual), and optionally its gear. {@code gearId} is omitted from the request
+     * entirely when null, never sent as a JSON {@code null} — per Strava's own docs the
+     * literal string {@code "none"} is what clears gear, so a bare null could mean
+     * something else entirely to their API and risk clearing gear on an activity we
+     * never meant to touch.
+     */
+    public StravaActivity updateActivity(long activityId, String name, String sportType, String description,
+                                          String gearId) {
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("name", name);
         body.put("sport_type", sportType);
         body.put("description", description);
+        if (gearId != null) {
+            body.put("gear_id", gearId);
+        }
 
         return withRetryOn429(() -> restClient.put()
                 .uri("/api/v3/activities/{id}", activityId)

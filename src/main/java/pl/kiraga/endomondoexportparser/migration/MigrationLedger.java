@@ -31,6 +31,12 @@ import java.util.function.UnaryOperator;
  * external_id duplicate detection — whatever activity id that produces is simply
  * recorded via {@link #markDone}. CREATE_MANUAL has no such backstop; per design.md that
  * risk is accepted and left to the user to check, since manual workouts are few.
+ *
+ * <p>SKIPPED ({@link #isSkipped}) is a separate durable state: a user's explicit "not
+ * this one" from the interactive review page (task 6.1), not an interruption. Automated
+ * passes (e.g. {@link MigrationExecutor#run}) treat it the same as DONE for resume
+ * purposes — leave it alone — but a user can always override either by clicking Migrate
+ * again on the review page, which calls {@link #markPending} regardless of current state.
  */
 @Service
 public class MigrationLedger {
@@ -60,6 +66,24 @@ public class MigrationLedger {
         }
     }
 
+    /**
+     * Records a user's explicit choice, from the interactive review page, not to
+     * migrate this workout — durable across sessions, unlike {@link #markPending}'s
+     * PENDING (which means "interrupted", not "declined"). Overwrites unconditionally,
+     * same as {@code markPending}, so a workout can be skipped again after an earlier
+     * {@link #markDone}/{@link #markFailed} if the user changes their mind.
+     */
+    public void markSkipped(String basename, PlannedAction action) {
+        lock.lock();
+        try {
+            Map<String, LedgerEntry> current = load();
+            current.put(basename, LedgerEntry.skipped(basename, action, now()));
+            save(current);
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public void markDone(String basename, long activityId) {
         update(basename, entry -> entry.asDone(activityId, now()));
     }
@@ -80,6 +104,11 @@ public class MigrationLedger {
     /** Only a DONE entry counts as already handled; PENDING/FAILED are retried on resume. */
     public boolean isDone(String basename) {
         return find(basename).map(entry -> entry.status() == LedgerStatus.DONE).orElse(false);
+    }
+
+    /** A durable user decision, distinct from {@link #isDone}; see {@link #markSkipped}. */
+    public boolean isSkipped(String basename) {
+        return find(basename).map(entry -> entry.status() == LedgerStatus.SKIPPED).orElse(false);
     }
 
     /** basename to activity id for every DONE entry, e.g. to wire into {@link PhotoReportGenerator}. */

@@ -10,6 +10,9 @@ public enum LedgerStatus {
     DONE,
 
     /** The Strava call failed; {@link LedgerEntry#reason()} explains why. */
-    FAILED
+    FAILED,
+
+    /** The user chose not to migrate this workout, from the interactive review page. */
+    SKIPPED
 
 }

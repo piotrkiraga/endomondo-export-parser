@@ -1,0 +1,31 @@
+/* Shared label/value detail rows, used wherever a workout's fields are listed
+   (Upload view's summary, Migration review's card) so both look identical
+   instead of each page having its own bordered <table>. */
+
+.detail-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1.5rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: var(--bs-secondary-color);
+    font-size: 0.875rem;
+}
+
+.detail-value {
+    font-weight: 500;
+    text-align: right;
+}

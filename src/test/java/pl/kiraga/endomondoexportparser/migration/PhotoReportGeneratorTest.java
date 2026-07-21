@@ -250,6 +250,29 @@ public class PhotoReportGeneratorTest {
     }
 
     @Test
+    void unmatchedPhotoGetsAWorkingThumbnailNotJustAPathListing(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+        photoFile(archiveRoot, PHOTO_UNMATCHED);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of());
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains("Unmatched photos"));
+        assertTrue(html.contains(PHOTO_UNMATCHED), "the archive-relative path stays visible as a caption");
+
+        int start = html.lastIndexOf("<img src=\"") + "<img src=\"".length();
+        String lastSrc = html.substring(start, html.indexOf('"', start));
+        assertTrue(Files.isRegularFile(outputHtmlFile.getParent().resolve(lastSrc)),
+                "the unmatched photo must also be copied next to the report, not linked back into the archive: " + lastSrc);
+    }
+
+    @Test
     void generatedFileWiresUpClickToEnlarge(@TempDir Path root) throws Exception {
         Path archiveRoot = root.resolve("archive");
         Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));

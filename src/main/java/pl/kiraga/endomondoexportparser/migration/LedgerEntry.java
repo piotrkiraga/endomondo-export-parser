@@ -24,6 +24,10 @@ public record LedgerEntry(
         return new LedgerEntry(basename, action, LedgerStatus.PENDING, null, null, updatedAt);
     }
 
+    static LedgerEntry skipped(String basename, PlannedAction action, String updatedAt) {
+        return new LedgerEntry(basename, action, LedgerStatus.SKIPPED, null, null, updatedAt);
+    }
+
     LedgerEntry asDone(long activityId, String updatedAt) {
         return new LedgerEntry(basename, action, LedgerStatus.DONE, activityId, null, updatedAt);
     }

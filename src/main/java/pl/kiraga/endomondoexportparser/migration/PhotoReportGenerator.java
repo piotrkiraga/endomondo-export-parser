@@ -12,6 +12,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -110,7 +111,7 @@ public class PhotoReportGenerator {
     public PhotoReport generate(Path archiveRoot, Path outputHtmlFile, Map<String, String> activityIdsByBasename) {
         Path photoCopiesDirectory = outputHtmlFile.resolveSibling("photos");
         PhotoReport report = build(archiveRoot, photoCopiesDirectory, activityIdsByBasename);
-        render(report, outputHtmlFile);
+        render(report, outputHtmlFile, archiveRoot);
         return report;
     }
 
@@ -143,31 +144,14 @@ public class PhotoReportGenerator {
 
     }
 
-    private void render(PhotoReport report, Path outputHtmlFile) {
+    private void render(PhotoReport report, Path outputHtmlFile, Path archiveRoot) {
 
         Path reportDir = outputHtmlFile.toAbsolutePath().normalize().getParent();
         StringBuilder html = new StringBuilder();
 
         html.append("<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"UTF-8\">")
                 .append("<title>Endomondo photo handout</title>")
-                .append("<style>")
-                .append("body{font-family:sans-serif;margin:2em;background:#fafafa}")
-                .append("h1{font-size:1.3em}")
-                .append(".workout{margin-bottom:2em;padding:1em;background:#fff;border:1px solid #ddd}")
-                .append(".workout h2{font-size:1em;margin:0 0 .3em}")
-                .append(".meta{color:#666;font-size:.85em;margin-bottom:.6em}")
-                .append(".photos{display:flex;flex-wrap:wrap;gap:.6em}")
-                .append(".photos figure{margin:0;width:220px}")
-                .append(".photos img{width:220px;height:auto;display:block;border:1px solid #ccc;cursor:zoom-in}")
-                .append(".photos figcaption{font-size:.75em;color:#666}")
-                .append(".no-location{color:#b00}")
-                .append(".basename{color:#999}")
-                .append(".unmatched li{font-family:monospace;font-size:.85em}")
-                .append("#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);")
-                .append("align-items:center;justify-content:center;z-index:999;cursor:zoom-out}")
-                .append("#lightbox.open{display:flex}")
-                .append("#lightbox img{max-width:95vw;max-height:95vh}")
-                .append("</style></head><body>\n")
+                .append("<style>").append(ReportStyles.CSS).append("</style></head><body>\n")
                 .append("<h1>Endomondo photo handout</h1>\n");
 
         for (PhotoGroup group : report.groups()) {
@@ -192,11 +176,22 @@ public class PhotoReportGenerator {
         }
 
         if (!report.unmatchedPhotos().isEmpty()) {
-            html.append("<section class=\"workout\"><h2>Unmatched photos</h2><ul class=\"unmatched\">\n");
+            // Copied next to the matched photos (rather than linked in place under
+            // archiveRoot) so the thumbnail resolves both when this file is opened
+            // straight from disk and when it's served through the app's own
+            // /photo-report/** mapping, which only covers this report's own directory.
+            Path unmatchedCopiesDirectory = reportDir.resolve("photos").resolve("unmatched");
+            html.append("<section class=\"workout\"><h2>Unmatched photos</h2>")
+                    .append("<div class=\"meta\">not referenced by any workout, so they weren't geotagged</div>\n")
+                    .append("<div class=\"photos\">\n");
             for (Path unmatched : report.unmatchedPhotos()) {
-                html.append("<li>").append(escape(toSlashes(unmatched))).append("</li>\n");
+                Path copy = unmatchedCopiesDirectory.resolve(unmatched);
+                copyQuietly(archiveRoot.resolve(unmatched), copy);
+                String href = relativeHref(reportDir, copy);
+                html.append("<figure><img src=\"").append(href).append("\" alt=\"\" onclick=\"openLightbox(this.src)\">")
+                        .append("<figcaption class=\"unmatched\">").append(escape(toSlashes(unmatched))).append("</figcaption></figure>\n");
             }
-            html.append("</ul></section>\n");
+            html.append("</div></section>\n");
         }
 
         html.append("<div id=\"lightbox\" onclick=\"this.classList.remove('open')\"><img id=\"lightbox-img\" src=\"\" alt=\"\"></div>\n")
@@ -230,6 +225,16 @@ public class PhotoReportGenerator {
         return activityId
                 .map(id -> "<a href=\"https://www.strava.com/activities/" + id + "\">view on Strava</a>")
                 .orElse("pending migration");
+    }
+
+    /** Best-effort: an unmatched photo missing its thumbnail still shows its path in the caption. */
+    private void copyQuietly(Path source, Path target) {
+        try {
+            Files.createDirectories(target.getParent());
+            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            // ignored, see above
+        }
     }
 
     private String relativeHref(Path reportDir, Path target) {

@@ -68,7 +68,7 @@ public class WorkoutResolver {
         String name = WorkoutNaming.resolve(planned.name(), planned.startTime(), planned.stravaSportType(), place);
         String description = WorkoutDescription.build(dateOnly(planned.startTime()), place);
 
-        return ResolvedWorkout.resolved(planned, name, description, pair.tcx());
+        return ResolvedWorkout.resolved(planned, name, description, pair);
 
     }
 

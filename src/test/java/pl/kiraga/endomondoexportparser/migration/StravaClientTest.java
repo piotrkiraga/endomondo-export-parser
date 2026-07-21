@@ -22,6 +22,7 @@ import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -234,6 +235,40 @@ public class StravaClientTest {
         StravaActivity activity = client.updateActivity(42, "New name", "Ride", "new description");
 
         assertEquals(42L, activity.id());
+    }
+
+    @Test
+    void updateActivityIncludesGearIdWhenGiven(@TempDir Path dir) {
+        StravaClient client = newClient(dir);
+        storeToken("t", Instant.parse("2026-07-20T13:00:00Z"));
+
+        server.expect(requestTo("https://www.strava.com/api/v3/activities/42"))
+                .andExpect(method(PUT))
+                .andExpect(content().json("{\"name\":\"New name\",\"sport_type\":\"Ride\",\"description\":\"new description\",\"gear_id\":\"b18387038\"}"))
+                .andRespond(withSuccess("{\"id\": 42}", APPLICATION_JSON));
+
+        client.updateActivity(42, "New name", "Ride", "new description", "b18387038");
+
+        server.verify();
+    }
+
+    @Test
+    void updateActivityOmitsGearIdEntirelyWhenNull(@TempDir Path dir) {
+        StravaClient client = newClient(dir);
+        storeToken("t", Instant.parse("2026-07-20T13:00:00Z"));
+
+        // Strict match against the exact body: if gear_id were sent as a JSON null (or
+        // any value) rather than omitted entirely, this comparison would fail — per
+        // Strava's own docs the literal string "none" is what clears gear, so a bare
+        // null risks meaning something else entirely to their API.
+        server.expect(requestTo("https://www.strava.com/api/v3/activities/42"))
+                .andExpect(method(PUT))
+                .andExpect(content().json("{\"name\":\"New name\",\"sport_type\":\"Ride\",\"description\":\"new description\"}", true))
+                .andRespond(withSuccess("{\"id\": 42}", APPLICATION_JSON));
+
+        client.updateActivity(42, "New name", "Ride", "new description");
+
+        server.verify();
     }
 
     // --- Rate limiting ---

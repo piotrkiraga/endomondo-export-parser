@@ -22,6 +22,7 @@ import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -181,6 +182,83 @@ public class MigrationExecutorTest {
         assertEquals(888L, entry.activityId());
     }
 
+    // --- Old-bike gear assignment: TRACKED_BASENAME is a Ride recorded 2011-09-10 ---
+
+    @Test
+    void gearIsAssignedToARideOnOrBeforeTheConfiguredCutoff(@TempDir Path dir) throws Exception {
+        Path archiveRoot = archiveWithTrackedWorkout(dir);
+        MigrationExecutor executor = executorFor(dir);
+        executor.setOldBikeGearId("b18387038");
+        executor.setOldBikeCutoffDate("2021-01-31");
+
+        server.expect(requestTo("https://www.strava.com/api/v3/uploads"))
+                .andRespond(withSuccess("{\"id\": 555, \"activity_id\": 777}", APPLICATION_JSON));
+        server.expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andExpect(content().json("{\"gear_id\":\"b18387038\"}"))
+                .andRespond(withSuccess("{\"id\": 777}", APPLICATION_JSON));
+
+        executor.run(archiveRoot);
+
+        server.verify();
+    }
+
+    @Test
+    void gearIsNotAssignedToARideAfterTheConfiguredCutoff(@TempDir Path dir) throws Exception {
+        Path archiveRoot = archiveWithTrackedWorkout(dir);
+        MigrationExecutor executor = executorFor(dir);
+        executor.setOldBikeGearId("b18387038");
+        executor.setOldBikeCutoffDate("2011-09-09"); // the day before the workout
+
+        server.expect(requestTo("https://www.strava.com/api/v3/uploads"))
+                .andRespond(withSuccess("{\"id\": 555, \"activity_id\": 777}", APPLICATION_JSON));
+        server.expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andExpect(content().json(
+                        "{\"name\":\"Sample tracked ride\",\"sport_type\":\"Ride\"}", false))
+                .andRespond(withSuccess("{\"id\": 777}", APPLICATION_JSON));
+
+        executor.run(archiveRoot);
+
+        server.verify();
+        // A strict body check (no gear_id key at all) is done at the StravaClient level
+        // (StravaClientTest#updateActivityOmitsGearIdEntirelyWhenNull); this test only
+        // needs to prove the executor decided not to pass a gear id at all.
+    }
+
+    @Test
+    void gearIsNeverAssignedWhenUnconfigured(@TempDir Path dir) throws Exception {
+        Path archiveRoot = archiveWithTrackedWorkout(dir);
+        MigrationExecutor executor = executorFor(dir);
+        // Neither setOldBikeGearId nor setOldBikeCutoffDate called: the default,
+        // matching every other test in this class that doesn't touch gear at all.
+
+        server.expect(requestTo("https://www.strava.com/api/v3/uploads"))
+                .andRespond(withSuccess("{\"id\": 555, \"activity_id\": 777}", APPLICATION_JSON));
+        server.expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andRespond(withSuccess("{\"id\": 777}", APPLICATION_JSON));
+
+        executor.run(archiveRoot);
+
+        server.verify();
+    }
+
+    @Test
+    void gearIsNotAssignedToANonRideSportEvenBeforeTheCutoff(@TempDir Path dir) throws Exception {
+        Path archiveRoot = archiveWithManualWorkout(dir); // MANUAL_BASENAME is a Walk, recorded 2014-09-16
+        MigrationExecutor executor = executorFor(dir);
+        executor.setOldBikeGearId("b18387038");
+        executor.setOldBikeCutoffDate("2099-01-01"); // deliberately always in the future
+
+        server.expect(requestTo("https://www.strava.com/api/v3/activities"))
+                .andRespond(withSuccess("{\"id\": 888}", APPLICATION_JSON));
+        server.expect(requestTo("https://www.strava.com/api/v3/activities/888"))
+                .andExpect(content().json("{\"sport_type\":\"Walk\"}", false))
+                .andRespond(withSuccess("{\"id\": 888}", APPLICATION_JSON));
+
+        executor.run(archiveRoot);
+
+        server.verify();
+    }
+
     // --- Resume behaviour ---
 
     @Test
@@ -224,6 +302,46 @@ public class MigrationExecutorTest {
         server.verify();
         assertEquals(0, second.uploaded());
         assertEquals(1, second.alreadyDone());
+    }
+
+    @Test
+    void aUserSkippedWorkoutMakesNoHttpCallAndCountsSeparatelyFromPlannerSkips(@TempDir Path dir) throws Exception {
+        Path archiveRoot = archiveWithTrackedWorkout(dir);
+        MigrationLedger ledger = ledgerFor(dir);
+        ledger.markSkipped(TRACKED_BASENAME, PlannedAction.UPLOAD_TCX);
+
+        MigrationExecutor executor = executorFor(dir);
+
+        MigrationRunSummary summary = executor.run(archiveRoot);
+
+        server.verify();
+        assertEquals(1, summary.skippedByUser());
+        assertEquals(0, summary.skippedByPlanner());
+        assertEquals(0, summary.uploaded());
+    }
+
+    @Test
+    void migrateOneOnAnAlreadyDoneWorkoutOnlyRefreshesMetadataRatherThanReUploading(@TempDir Path dir) throws Exception {
+        Path archiveRoot = archiveWithTrackedWorkout(dir);
+        MigrationLedger ledger = ledgerFor(dir);
+        ledger.markPending(TRACKED_BASENAME, PlannedAction.UPLOAD_TCX);
+        ledger.markDone(TRACKED_BASENAME, 111L);
+
+        MigrationExecutor executor = executorFor(dir);
+        ResolvedWorkout workout = executor.resolveAll(archiveRoot).get(0);
+
+        // No /uploads expectation at all: MockRestServiceServer fails loudly on any
+        // unexpected request, so re-uploading the TCX would fail this test.
+        server.expect(requestTo("https://www.strava.com/api/v3/activities/111"))
+                .andRespond(withSuccess("{\"id\": 111}", APPLICATION_JSON));
+
+        WorkoutMigrationOutcome outcome = executor.migrateOne(workout);
+
+        server.verify();
+        assertTrue(outcome.success());
+        assertEquals(111L, outcome.activityId());
+        assertEquals(111L, ledger.find(TRACKED_BASENAME).orElseThrow().activityId(),
+                "re-migrating a DONE workout must keep its original activity id, not mint a new one");
     }
 
     // --- Failure handling ---

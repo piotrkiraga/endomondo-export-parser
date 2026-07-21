@@ -5,6 +5,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.ModelAndView;
+import pl.kiraga.endomondoexportparser.migration.MigrationLedger;
 import pl.kiraga.endomondoexportparser.migration.PhotoReport;
 import pl.kiraga.endomondoexportparser.migration.PhotoReportGenerator;
 import pl.kiraga.endomondoexportparser.migration.PlannedAction;
@@ -15,6 +16,7 @@ import pl.kiraga.endomondoexportparser.migration.WorkoutReportGenerator;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +32,7 @@ public class MigrationController extends BaseController {
 
     private final PhotoReportGenerator photoReportGenerator;
     private final WorkoutReportGenerator workoutReportGenerator;
+    private final MigrationLedger ledger;
     private final StravaTokenStore stravaTokenStore;
 
     @Value("${endomondo.archive.root}")
@@ -42,9 +45,10 @@ public class MigrationController extends BaseController {
     private String workoutReportOutputDirectory;
 
     public MigrationController(PhotoReportGenerator photoReportGenerator, WorkoutReportGenerator workoutReportGenerator,
-                                StravaTokenStore stravaTokenStore) {
+                                MigrationLedger ledger, StravaTokenStore stravaTokenStore) {
         this.photoReportGenerator = photoReportGenerator;
         this.workoutReportGenerator = workoutReportGenerator;
+        this.ledger = ledger;
         this.stravaTokenStore = stravaTokenStore;
     }
 
@@ -71,10 +75,8 @@ public class MigrationController extends BaseController {
             return modelAndView;
         }
 
-        // No activity ids yet: the ledger (task 4.2) does not exist. Every link reads
-        // "pending migration" until the executor is built to supply real ones.
         PhotoReport report = photoReportGenerator.generate(
-                archiveRoot, Path.of(photoReportOutputDirectory, "index.html"), Map.of());
+                archiveRoot, Path.of(photoReportOutputDirectory, "index.html"), activityIdsAsStrings());
 
         infoMessages.add(message("infoMessage.migration.reportGenerated", new Object[]{
                 report.groups().size(), report.photoCount(), report.unmatchedPhotos().size()}));
@@ -108,7 +110,7 @@ public class MigrationController extends BaseController {
         }
 
         WorkoutReport report = workoutReportGenerator.generate(
-                archiveRoot, Path.of(workoutReportOutputDirectory, "index.html"));
+                archiveRoot, Path.of(workoutReportOutputDirectory, "index.html"), ledger.activityIdsByBasename());
 
         infoMessages.add(message("infoMessage.migration.workoutReportGenerated", new Object[]{
                 report.entries().size(), report.count(PlannedAction.SKIP)}));
@@ -116,6 +118,13 @@ public class MigrationController extends BaseController {
 
         return modelAndView;
 
+    }
+
+    /** {@link PhotoReportGenerator} predates the ledger and still takes ids as strings. */
+    private Map<String, String> activityIdsAsStrings() {
+        Map<String, String> ids = new LinkedHashMap<>();
+        ledger.activityIdsByBasename().forEach((basename, activityId) -> ids.put(basename, String.valueOf(activityId)));
+        return ids;
     }
 
     private void addStatus(ModelAndView modelAndView) {

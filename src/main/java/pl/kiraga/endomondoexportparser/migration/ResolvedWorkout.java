@@ -16,6 +16,7 @@ public record ResolvedWorkout(
         String stravaSportType,
         String description,
         Path tcxFile,
+        Path jsonFile,
         String startTime,
         Double distanceKm,
         Integer durationS,
@@ -25,14 +26,14 @@ public record ResolvedWorkout(
     static ResolvedWorkout unresolved(WorkoutPlan planned) {
         return new ResolvedWorkout(
                 planned.basename(), planned.action(), planned.reason(),
-                null, planned.stravaSportType(), null, null,
+                null, planned.stravaSportType(), null, null, null,
                 planned.startTime(), planned.distanceKm(), planned.durationS(), planned.pictureCount());
     }
 
-    static ResolvedWorkout resolved(WorkoutPlan planned, String name, String description, Path tcxFile) {
+    static ResolvedWorkout resolved(WorkoutPlan planned, String name, String description, WorkoutPair pair) {
         return new ResolvedWorkout(
                 planned.basename(), planned.action(), planned.reason(),
-                name, planned.stravaSportType(), description, tcxFile,
+                name, planned.stravaSportType(), description, pair.tcx(), pair.json(),
                 planned.startTime(), planned.distanceKm(), planned.durationS(), planned.pictureCount());
     }
 

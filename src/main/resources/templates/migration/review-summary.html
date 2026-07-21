@@ -1,0 +1,68 @@
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<head th:replace="fragments/head :: head(#{title.migrationReviewSummary})"></head>
+<body>
+
+<div th:replace="fragments/header :: header(#{title.migrationReviewSummary})"/>
+
+<section class="my-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-10 mx-auto">
+
+                <div th:unless="${archivePresent}" class="alert alert-warning"
+                     th:text="#{migration.photoReport.archiveMissing(${archiveRoot})}">
+                    Archive not found
+                </div>
+
+                <div th:if="${archivePresent}">
+
+                    <table class="table w-auto">
+                        <tbody>
+                        <tr>
+                            <th th:text="#{migration.review.summary.uploaded}">Uploaded</th>
+                            <td th:text="${uploaded}"></td>
+                        </tr>
+                        <tr>
+                            <th th:text="#{migration.review.summary.manual}">Manual</th>
+                            <td th:text="${manualCreated}"></td>
+                        </tr>
+                        <tr>
+                            <th th:text="#{migration.review.summary.skipped}">Skipped</th>
+                            <td th:text="${skippedByUser}"></td>
+                        </tr>
+                        <tr>
+                            <th th:text="#{migration.review.summary.failed}">Failed</th>
+                            <td th:text="${failed}"></td>
+                        </tr>
+                        <tr>
+                            <th th:text="#{migration.review.summary.remaining}">Remaining</th>
+                            <td th:text="${remaining}"></td>
+                        </tr>
+                        <tr>
+                            <th th:text="#{migration.review.summary.total}">Total</th>
+                            <td th:text="${total}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                    <div th:if="${not #lists.isEmpty(failures)}" class="mt-3">
+                        <h5 th:text="#{migration.review.summary.failuresHeading}">Failures</h5>
+                        <ul>
+                            <li th:each="failure : ${failures}" th:utext="${failure}"></li>
+                        </ul>
+                    </div>
+
+                    <a th:if="${remaining > 0}" class="btn btn-primary mt-3" th:href="@{/migration/review}"
+                       th:text="#{migration.review.summary.continueReview}">Continue review</a>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<div th:replace="fragments/footer :: footer"/>
+
+</body>
+</html>

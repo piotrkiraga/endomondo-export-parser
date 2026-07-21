@@ -24,22 +24,24 @@
                 </div>
 
                 <div th:if="${summary != null}" class="card my-4">
-                    <div class="card-header" th:text="#{summary.header}">Workout summary</div>
-                    <table class="table table-sm mb-0">
-                        <tr><th th:text="#{summary.name}">Name</th><td th:text="${summary.name} ?: #{summary.absent}"/></tr>
-                        <tr><th th:text="#{summary.sport}">Sport</th><td th:text="${summary.sport} ?: #{summary.absent}"/></tr>
-                        <tr><th th:text="#{summary.source}">Source</th><td th:text="${summary.source} ?: #{summary.absent}"/></tr>
-                        <tr><th th:text="#{summary.startTime}">Start time</th><td th:text="${summary.startTime} ?: #{summary.absent}"/></tr>
-                        <tr><th th:text="#{summary.duration}">Duration</th><td th:text="${summary.duration} ?: #{summary.absent}"/></tr>
-                        <tr><th th:text="#{summary.distance}">Distance (km)</th><td th:text="${summary.distanceKm} ?: #{summary.absent}"/></tr>
-                        <tr><th th:text="#{summary.calories}">Calories (kcal)</th><td th:text="${summary.caloriesKcal} ?: #{summary.absent}"/></tr>
-                        <tr><th th:text="#{summary.speedAvg}">Average speed (km/h)</th><td th:text="${summary.speedAvgKmh} ?: #{summary.absent}"/></tr>
-                        <tr><th th:text="#{summary.speedMax}">Maximum speed (km/h)</th><td th:text="${summary.speedMaxKmh} ?: #{summary.absent}"/></tr>
-                        <tr><th th:text="#{summary.altitudeMin}">Minimum altitude (m)</th><td th:text="${summary.altitudeMinM} ?: #{summary.absent}"/></tr>
-                        <tr><th th:text="#{summary.altitudeMax}">Maximum altitude (m)</th><td th:text="${summary.altitudeMaxM} ?: #{summary.absent}"/></tr>
-                        <tr><th th:text="#{summary.points}">GPS points</th><td th:text="${summary.pointCount}"/></tr>
-                        <tr><th th:text="#{summary.pointsWithLocation}">Points with full location</th><td th:text="${summary.pointsWithLocationCount}"/></tr>
-                    </table>
+                    <div class="card-body">
+                        <h5 class="card-title mb-3" th:text="#{summary.header}">Workout summary</h5>
+                        <div class="detail-list">
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.name}">Name</span><span class="detail-value" th:text="${summary.name} ?: #{summary.absent}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.sport}">Sport</span><span class="detail-value" th:text="${summary.sport} ?: #{summary.absent}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.source}">Source</span><span class="detail-value" th:text="${summary.source} ?: #{summary.absent}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.startTime}">Start time</span><span class="detail-value" th:text="${summary.startTime} ?: #{summary.absent}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.duration}">Duration</span><span class="detail-value" th:text="${summary.duration} ?: #{summary.absent}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.distance}">Distance (km)</span><span class="detail-value" th:text="${summary.distanceKm} ?: #{summary.absent}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.calories}">Calories (kcal)</span><span class="detail-value" th:text="${summary.caloriesKcal} ?: #{summary.absent}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.speedAvg}">Average speed (km/h)</span><span class="detail-value" th:text="${summary.speedAvgKmh} ?: #{summary.absent}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.speedMax}">Maximum speed (km/h)</span><span class="detail-value" th:text="${summary.speedMaxKmh} ?: #{summary.absent}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.altitudeMin}">Minimum altitude (m)</span><span class="detail-value" th:text="${summary.altitudeMinM} ?: #{summary.absent}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.altitudeMax}">Maximum altitude (m)</span><span class="detail-value" th:text="${summary.altitudeMaxM} ?: #{summary.absent}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.points}">GPS points</span><span class="detail-value" th:text="${summary.pointCount}"></span></div>
+                            <div class="detail-row"><span class="detail-label" th:text="#{summary.pointsWithLocation}">Points with full location</span><span class="detail-value" th:text="${summary.pointsWithLocationCount}"></span></div>
+                        </div>
+                    </div>
                 </div>
 
             </div>

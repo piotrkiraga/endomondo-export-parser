@@ -1,12 +1,12 @@
 # Endomondo Export Parser
 
 A Spring Boot web application that reads the workout files from an Endomondo GDPR data
-export and is growing into a one-button migration of that archive into Strava.
+export and migrates that archive into Strava, one reviewed workout at a time.
 
 Endomondo shut down in 2020 and handed users a ZIP file. This project turns that frozen
-archive back into something usable: it parses the export's idiosyncratic JSON, and — the
-work currently in progress — uploads the workouts to Strava with their routes, titles,
-dates and sports intact.
+archive back into something usable: it parses the export's idiosyncratic JSON, then walks
+you through every workout in a browser — exactly what it would send to Strava, before it
+sends it — so migrating means clicking through your history, not trusting a bulk import.
 
 ## What it does today
 
@@ -24,18 +24,32 @@ dates and sports intact.
 - **Hands photos out geotagged and browsable.** Every photo referenced by a workout is
   grouped, stamped with GPS coordinates in its EXIF (from the photo's own point or the
   workout's route, whichever is available), and written into a single click-to-enlarge
-  HTML report — openable straight from disk, no server required.
+  HTML report — openable straight from disk, no server required, and it follows your
+  OS/browser dark-mode preference even then. Photos not referenced by any workout show up
+  too, as real thumbnails rather than a bare path list. Once a workout is migrated, its
+  entry links straight to the activity on Strava.
 - **Previews the migration before anything uploads.** A generated report shows, per
   workout, exactly what would be sent to Strava — resolved name, sport, description,
   dates, distance, duration, and whether it uploads as a track or gets created manually —
-  built entirely offline from the same planning logic the real migration will use.
+  built entirely offline from the same planning logic the real migration will use, styled
+  and dark-mode-aware the same way the photo report is, with the same live Strava link
+  once migrated.
 - **Names the unnamed.** A workout with no title becomes something like "Evening Ride
   along Vistula in Kraków": time of day, sport, and a reverse-geocoded nearby landmark,
   resolved via OpenStreetMap and cached so the same real-world place is never looked up
   twice.
 - **Hosts its own Strava connection.** An OAuth authorization-code flow lets it call
-  Strava's API on your behalf; the migration run itself — uploading tracks, creating
-  activities — is still in progress.
+  Strava's API on your behalf, scoped to `activity:write` only — it never reads your
+  existing activities.
+- **Migrates one workout at a time, by hand.** A review screen shows each workout's real
+  name, sport, description, and photo thumbnails (geotagged copies, each with a
+  click-to-copy local path, ready to attach manually — the one thing the API can't do),
+  with Previous/Next to browse freely regardless of what's decided yet, and Migrate, Skip,
+  or Stop to act. Nothing uploads unattended; a Skip is remembered even if you close the
+  app, and re-clicking Migrate on an already-migrated workout never re-sends the track
+  (Strava would just reject it as a duplicate) — it refreshes the activity's name, sport,
+  description, and gear from the archive instead, so it also doubles as "push my latest
+  data" for a workout you've since corrected something about.
 
 ## Why the `openspec/` directory is the interesting part
 
@@ -90,7 +104,7 @@ Java 17 or newer is required.
 ./mvnw test
 ```
 
-159 tests covering the parser against anonymized fixtures, the upload flow, localization
+192 tests covering the parser against anonymized fixtures, the upload flow, localization
 including Polish diacritics, the migration planner, EXIF geotagging, the Strava API client
 and OAuth flow (via `MockRestServiceServer` — no test touches the real network), and the
 OpenStreetMap reverse-geocoding clients. Tests that need a real Endomondo archive skip
@@ -108,7 +122,10 @@ at [strava.com/settings/api](https://www.strava.com/settings/api)) go in a git-i
 `application-local.properties.example` template at the project root and filled in — no
 environment variables to re-export every session, and nothing ever committed. Plain
 environment variables still work too (Spring reads both the same way), which is handy for
-CI or containers where a file is less natural.
+CI or containers where a file is less natural. The same file also holds an optional
+old-bike gear correction (Strava otherwise assigns whatever gear is currently your
+default to every migrated Ride, which is wrong for one recorded before you owned it) —
+blank and inert unless you set it.
 
 Login is disabled entirely — `WebSecurityConfiguration` permits every request. The app is
 built for single-user, localhost-only use; the original in-memory placeholder accounts were
@@ -122,14 +139,16 @@ also git-ignored) so the same real-world coordinate is never looked up twice.
 
 ## Status
 
-The parser, web interface, and the Strava migration engine are done and tested: archive
-scanning, planning, sport mapping, photo geotagging with its browsable report, the offline
-workout preview report, location-based naming, the Strava API client with its OAuth connect
-flow, the migration ledger that makes a run resumable and duplicate-safe, and the executor
-that drives uploads/creates through it. Over a real 162-workout archive the planner produces
-137 track uploads and 25 manual activities with nothing skipped.
+The parser, web interface, and the entire Strava migration engine are done and tested:
+archive scanning, planning, sport mapping, photo geotagging with its browsable report, the
+offline workout preview report, location-based naming, the Strava API client with its OAuth
+connect flow, the migration ledger that makes a run resumable and duplicate-safe, the
+executor that drives uploads/creates through it, and the interactive review page that ties
+it all together in the browser. Over a real 162-workout archive the planner produces 137
+track uploads and 25 manual activities with nothing skipped.
 
-Still to come: the migration page tying everything above into one button in the browser.
-Every write to a real Strava account is gated behind an explicit user action, and a dry run
-is the default path everywhere — the executor itself has not yet touched a real Strava
-account, deliberately: that first contact is a gated step.
+What's left is entirely the real thing: the executor has not yet touched a real Strava
+account, deliberately. Every write is gated behind an explicit user action — a dry run is
+the default path everywhere, and even the review page never migrates a workout without a
+click — so the two remaining steps are a small supervised smoke run, then the full archive,
+both requiring the user's own go-ahead.

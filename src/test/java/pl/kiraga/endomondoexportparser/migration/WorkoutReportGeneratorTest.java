@@ -7,9 +7,11 @@ import pl.kiraga.endomondoexportparser.service.EndomondoJsonParser;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -155,6 +157,35 @@ public class WorkoutReportGeneratorTest {
         assertTrue(html.contains("Create manual"));
         assertTrue(html.contains("Migrated from Endomondo"));
         assertTrue(html.contains("archive: 2011-09-10 12_58_59.0"), "the basename stays visible for cross-reference");
+    }
+
+    @Test
+    void alreadyMigratedWorkoutGetsAClickableStravaLinkRatherThanPendingMigration(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        Path outputHtmlFile = root.resolve("data").resolve("workout-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of("2011-09-10 12_58_59.0", 777L));
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains("https://www.strava.com/activities/777"));
+        assertFalse(html.contains("pending migration"));
+    }
+
+    @Test
+    void notYetMigratedWorkoutShowsPendingMigrationRatherThanALink(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        Path outputHtmlFile = root.resolve("data").resolve("workout-report.html");
+        generator.generate(archiveRoot, outputHtmlFile);
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains("pending migration"));
     }
 
     @Test

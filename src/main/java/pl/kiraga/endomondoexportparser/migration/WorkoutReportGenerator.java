@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Builds the workout migration preview: for every workout in the archive, exactly what
@@ -33,8 +34,19 @@ public class WorkoutReportGenerator {
         this.resolver = resolver;
     }
 
-    /** {@code archiveRoot} is the archive root (containing "Workouts"), matching {@link PhotoReportGenerator}. */
+    /** Dry-run: no workout has a Strava activity id yet. */
     public WorkoutReport build(Path archiveRoot) {
+        return build(archiveRoot, Map.of());
+    }
+
+    /**
+     * {@code archiveRoot} is the archive root (containing "Workouts"), matching
+     * {@link PhotoReportGenerator}. {@code activityIdsByBasename} supplies Strava
+     * activity ids for workouts already migrated (e.g. {@link MigrationLedger#activityIdsByBasename()}),
+     * same convention as {@link PhotoReportGenerator#build}; a workout absent from it
+     * renders as "pending migration".
+     */
+    public WorkoutReport build(Path archiveRoot, Map<String, Long> activityIdsByBasename) {
 
         Path workoutsDirectory = archiveRoot.resolve(WORKOUTS_DIR);
         MigrationPlan plan = planner.plan(workoutsDirectory);
@@ -42,16 +54,21 @@ public class WorkoutReportGenerator {
 
         List<WorkoutReportEntry> entries = new ArrayList<>();
         for (ResolvedWorkout workout : resolved) {
-            entries.add(WorkoutReportEntry.from(workout));
+            entries.add(WorkoutReportEntry.from(workout, activityIdsByBasename.get(workout.basename())));
         }
 
         return new WorkoutReport(List.copyOf(entries), plan.tracksWithoutMetadata());
 
     }
 
-    /** Builds the report and writes it as a single self-contained HTML file. */
+    /** Builds the report and writes it as a single self-contained HTML file; dry-run, no activity ids. */
     public WorkoutReport generate(Path archiveRoot, Path outputHtmlFile) {
-        WorkoutReport report = build(archiveRoot);
+        return generate(archiveRoot, outputHtmlFile, Map.of());
+    }
+
+    /** As {@link #generate(Path, Path)}, with Strava activity ids/links for already-migrated workouts. */
+    public WorkoutReport generate(Path archiveRoot, Path outputHtmlFile, Map<String, Long> activityIdsByBasename) {
+        WorkoutReport report = build(archiveRoot, activityIdsByBasename);
         render(report, outputHtmlFile);
         return report;
     }
@@ -62,21 +79,7 @@ public class WorkoutReportGenerator {
 
         html.append("<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"UTF-8\">")
                 .append("<title>Endomondo workout report</title>")
-                .append("<style>")
-                .append("body{font-family:sans-serif;margin:2em;background:#fafafa}")
-                .append("h1{font-size:1.3em}")
-                .append(".summary{color:#444;margin-bottom:1.5em}")
-                .append(".workout{margin-bottom:1em;padding:1em;background:#fff;border:1px solid #ddd}")
-                .append(".workout.skip{background:#fff8f0;border-color:#e8d5b5}")
-                .append(".workout h2{font-size:1em;margin:0 0 .3em}")
-                .append(".meta{color:#666;font-size:.85em;margin-bottom:.4em}")
-                .append(".description{font-size:.9em;color:#333;margin:.4em 0;white-space:pre-wrap}")
-                .append(".action{display:inline-block;font-size:.75em;padding:.1em .5em;border-radius:.3em;color:#fff}")
-                .append(".action.upload{background:#2a7}")
-                .append(".action.manual{background:#38a}")
-                .append(".action.skip{background:#b76}")
-                .append(".basename{color:#999}")
-                .append("</style></head><body>\n")
+                .append("<style>").append(ReportStyles.CSS).append("</style></head><body>\n")
                 .append("<h1>Endomondo workout report</h1>\n")
                 .append("<p class=\"summary\">")
                 .append(report.count(PlannedAction.UPLOAD_TCX)).append(" track upload(s), ")
@@ -129,13 +132,20 @@ public class WorkoutReportGenerator {
         if (entry.pictureCount() > 0) {
             section.append(" &mdash; ").append(entry.pictureCount()).append(" photo(s)");
         }
-        section.append(" &mdash; <span class=\"basename\">archive: ").append(escape(entry.basename())).append("</span>")
+        section.append(" &mdash; ").append(activityLink(entry.activityId()))
+                .append(" &mdash; <span class=\"basename\">archive: ").append(escape(entry.basename())).append("</span>")
                 .append("</div>\n")
                 .append("<div class=\"description\">").append(escape(entry.stravaDescription())).append("</div>\n")
                 .append("</section>\n");
 
         return section.toString();
 
+    }
+
+    /** Mirrors {@link PhotoReportGenerator}'s own activity link text/format exactly. */
+    private String activityLink(Long activityId) {
+        return activityId == null ? "pending migration"
+                : "<a href=\"https://www.strava.com/activities/" + activityId + "\">view on Strava</a>";
     }
 
     private static String formatDuration(Integer seconds) {
