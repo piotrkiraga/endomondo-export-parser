@@ -33,7 +33,7 @@ public class WorkoutReportGeneratorTest {
     private WorkoutReportGenerator generatorWith(PlaceLookup placeLookup) {
         return new WorkoutReportGenerator(
                 new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
-                new ArchiveScanner(), new EndomondoJsonParser(), placeLookup);
+                new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), placeLookup));
     }
 
     private void copyFixture(Path workoutsDirectory, String fixture, String basename) throws Exception {

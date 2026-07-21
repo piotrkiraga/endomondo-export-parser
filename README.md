@@ -90,7 +90,7 @@ Java 17 or newer is required.
 ./mvnw test
 ```
 
-150 tests covering the parser against anonymized fixtures, the upload flow, localization
+159 tests covering the parser against anonymized fixtures, the upload flow, localization
 including Polish diacritics, the migration planner, EXIF geotagging, the Strava API client
 and OAuth flow (via `MockRestServiceServer` — no test touches the real network), and the
 OpenStreetMap reverse-geocoding clients. Tests that need a real Endomondo archive skip
@@ -122,14 +122,14 @@ also git-ignored) so the same real-world coordinate is never looked up twice.
 
 ## Status
 
-The parser, web interface, and most of the Strava migration are done and tested: archive
+The parser, web interface, and the Strava migration engine are done and tested: archive
 scanning, planning, sport mapping, photo geotagging with its browsable report, the offline
 workout preview report, location-based naming, the Strava API client with its OAuth connect
-flow, and the migration ledger that will make a real run resumable and duplicate-safe. Over
-a real 162-workout archive the planner produces 137 track uploads and 25 manual activities
-with nothing skipped.
+flow, the migration ledger that makes a run resumable and duplicate-safe, and the executor
+that drives uploads/creates through it. Over a real 162-workout archive the planner produces
+137 track uploads and 25 manual activities with nothing skipped.
 
-Still to come: the executor that actually drives uploads using that ledger, and the
-migration page tying it together. Every write to a real Strava account is gated behind an
-explicit user action, and a dry run is the default path everywhere — the API client itself
-has not yet touched a real Strava account, deliberately: that first contact is a gated step.
+Still to come: the migration page tying everything above into one button in the browser.
+Every write to a real Strava account is gated behind an explicit user action, and a dry run
+is the default path everywhere — the executor itself has not yet touched a real Strava
+account, deliberately: that first contact is a gated step.

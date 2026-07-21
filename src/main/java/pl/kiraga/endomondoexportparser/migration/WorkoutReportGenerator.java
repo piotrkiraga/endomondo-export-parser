@@ -1,10 +1,6 @@
 package pl.kiraga.endomondoexportparser.migration;
 
 import org.springframework.stereotype.Service;
-import pl.kiraga.endomondoexportparser.format.json.EndomondoJson;
-import pl.kiraga.endomondoexportparser.format.json.Location;
-import pl.kiraga.endomondoexportparser.service.EndomondoJsonParser;
-import pl.kiraga.endomondoexportparser.service.InvalidWorkoutJsonException;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -12,20 +8,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Builds the workout migration preview: for every workout in the archive, exactly what
  * {@link MigrationPlanner} decided to do with it and — for anything not skipped — the
- * real name/sport/description a migration would send to Strava. Reuses the planner for
- * the action decision (the only place those rules live) and does its own scan+parse
- * pass, the same way {@link PhotoReportGenerator} already does independently of the
- * planner, purely to resolve the display-layer name/description via {@link PlaceLookup}.
- * No Strava collaborator here either: like the planner, producing this report cannot
- * reach the network.
+ * real name/sport/description a migration would send to Strava, resolved by
+ * {@link WorkoutResolver} (the same resolution {@link MigrationExecutor} uses for the
+ * real thing, so what this report shows and what actually gets sent can never diverge).
+ * No Strava collaborator here: like the planner, producing this report cannot reach
+ * the network.
  */
 @Service
 public class WorkoutReportGenerator {
@@ -33,16 +26,11 @@ public class WorkoutReportGenerator {
     private static final String WORKOUTS_DIR = "Workouts";
 
     private final MigrationPlanner planner;
-    private final ArchiveScanner scanner;
-    private final EndomondoJsonParser parser;
-    private final PlaceLookup placeLookup;
+    private final WorkoutResolver resolver;
 
-    public WorkoutReportGenerator(MigrationPlanner planner, ArchiveScanner scanner, EndomondoJsonParser parser,
-                                   PlaceLookup placeLookup) {
+    public WorkoutReportGenerator(MigrationPlanner planner, WorkoutResolver resolver) {
         this.planner = planner;
-        this.scanner = scanner;
-        this.parser = parser;
-        this.placeLookup = placeLookup;
+        this.resolver = resolver;
     }
 
     /** {@code archiveRoot} is the archive root (containing "Workouts"), matching {@link PhotoReportGenerator}. */
@@ -50,16 +38,11 @@ public class WorkoutReportGenerator {
 
         Path workoutsDirectory = archiveRoot.resolve(WORKOUTS_DIR);
         MigrationPlan plan = planner.plan(workoutsDirectory);
-        ArchiveScan scan = scanner.scan(workoutsDirectory);
-
-        Map<String, Path> jsonByBasename = new HashMap<>();
-        for (WorkoutPair workout : scan.workouts()) {
-            jsonByBasename.put(workout.basename(), workout.json());
-        }
+        List<ResolvedWorkout> resolved = resolver.resolve(workoutsDirectory, plan);
 
         List<WorkoutReportEntry> entries = new ArrayList<>();
-        for (WorkoutPlan planned : plan.workouts()) {
-            entries.add(entryFor(planned, jsonByBasename.get(planned.basename())));
+        for (ResolvedWorkout workout : resolved) {
+            entries.add(WorkoutReportEntry.from(workout));
         }
 
         return new WorkoutReport(List.copyOf(entries), plan.tracksWithoutMetadata());
@@ -71,51 +54,6 @@ public class WorkoutReportGenerator {
         WorkoutReport report = build(archiveRoot);
         render(report, outputHtmlFile);
         return report;
-    }
-
-    private WorkoutReportEntry entryFor(WorkoutPlan planned, Path json) {
-
-        if (planned.action() == PlannedAction.SKIP || json == null) {
-            return WorkoutReportEntry.from(planned, null, null);
-        }
-
-        EndomondoJson parsed = parseQuietly(json);
-        if (parsed == null) {
-            return WorkoutReportEntry.from(planned, null, null);
-        }
-
-        PlaceDescription place = placeFor(parsed);
-        String name = WorkoutNaming.resolve(planned.name(), planned.startTime(), planned.stravaSportType(), place);
-        String description = WorkoutDescription.build(dateOnly(planned.startTime()), place);
-
-        return WorkoutReportEntry.from(planned, name, description);
-
-    }
-
-    private PlaceDescription placeFor(EndomondoJson parsed) {
-        if (parsed.getPoints().isEmpty()) {
-            return null;
-        }
-        Location firstPoint = parsed.getPoints().get(0).getLocation();
-        if (firstPoint == null || firstPoint.getLatitude() == null || firstPoint.getLongitude() == null) {
-            return null;
-        }
-        return placeLookup.lookup(firstPoint.getLatitude(), firstPoint.getLongitude()).orElse(null);
-    }
-
-    /** Endomondo's start_time looks like "2015-04-11 11:37:00.0"; the date is a fixed prefix. */
-    private static String dateOnly(String startTime) {
-        return (startTime == null || startTime.length() < 10) ? startTime : startTime.substring(0, 10);
-    }
-
-    private EndomondoJson parseQuietly(Path json) {
-        try {
-            return parser.parse(Files.readAllBytes(json));
-        } catch (InvalidWorkoutJsonException | IOException e) {
-            // MigrationPlanner already reports unparseable workouts as skipped; this
-            // second pass simply contributes no name/description for one.
-            return null;
-        }
     }
 
     private void render(WorkoutReport report, Path outputHtmlFile) {

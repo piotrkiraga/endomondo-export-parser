@@ -17,18 +17,18 @@ public record WorkoutReportEntry(
         Integer durationS,
         int pictureCount) {
 
-    static WorkoutReportEntry from(WorkoutPlan planned, String stravaName, String stravaDescription) {
+    static WorkoutReportEntry from(ResolvedWorkout workout) {
         return new WorkoutReportEntry(
-                planned.basename(),
-                planned.action(),
-                planned.reason(),
-                stravaName,
-                planned.stravaSportType(),
-                stravaDescription,
-                planned.startTime(),
-                planned.distanceKm(),
-                planned.durationS(),
-                planned.pictureCount());
+                workout.basename(),
+                workout.action(),
+                workout.reason(),
+                workout.name(),
+                workout.stravaSportType(),
+                workout.description(),
+                workout.startTime(),
+                workout.distanceKm(),
+                workout.durationS(),
+                workout.pictureCount());
     }
 
 }
