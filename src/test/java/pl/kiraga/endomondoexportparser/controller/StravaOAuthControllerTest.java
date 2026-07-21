@@ -40,7 +40,7 @@ public class StravaOAuthControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/migration/photo-report"))
                 .andExpect(flash().attribute("errorMessages", hasItem(
-                        "STRAVA_CLIENT_ID is not set; export it as an environment variable and restart the app")));
+                        "STRAVA_CLIENT_ID is not set; copy application-local.properties.example to application-local.properties and fill it in (or set STRAVA_CLIENT_ID/STRAVA_CLIENT_SECRET as environment variables instead), then restart the app")));
     }
 
     @Test

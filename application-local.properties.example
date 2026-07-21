@@ -1,0 +1,12 @@
+# Copy this file to application-local.properties (git-ignored, project root — same
+# level as this file) and fill in your own Strava API application's credentials from
+# https://www.strava.com/settings/api. Loaded automatically via spring.config.import in
+# application.properties; no environment variables to export, no shell to remember.
+#
+# This is one of two supported ways to supply these two values — the app reads
+# STRAVA_CLIENT_ID/STRAVA_CLIENT_SECRET from Spring's Environment regardless of source,
+# so plain environment variables work exactly as well (and this file is entirely
+# optional/skipped if absent). Use whichever fits your setup, e.g. env vars in CI or a
+# container, this file for everyday local development.
+STRAVA_CLIENT_ID=
+STRAVA_CLIENT_SECRET=

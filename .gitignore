@@ -39,6 +39,9 @@ Thumbs.db
 # Personal Endomondo/Strava export data — must never be committed
 data/
 
+# Local secrets (Strava API credentials); see application-local.properties.example
+application-local.properties
+
 # Per-machine tool settings (paths and ports differ per developer/machine)
 .claude/settings.local.json
 /.mcp.json

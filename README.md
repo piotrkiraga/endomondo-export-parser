@@ -100,9 +100,15 @@ themselves when one is not present, so a fresh clone runs green.
 
 Personal export data never enters this repository. The `data/` directory is git-ignored,
 and the fixtures under `src/test/resources/fixtures/` are anonymized: real coordinates and
-photo references are replaced with synthetic ones. Strava credentials are supplied through
-the `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET` environment variables and are never
-committed.
+photo references are replaced with synthetic ones.
+
+Strava credentials (`STRAVA_CLIENT_ID`/`STRAVA_CLIENT_SECRET` from your own API application
+at [strava.com/settings/api](https://www.strava.com/settings/api)) go in a git-ignored
+`application-local.properties`, copied once from the checked-in
+`application-local.properties.example` template at the project root and filled in — no
+environment variables to re-export every session, and nothing ever committed. Plain
+environment variables still work too (Spring reads both the same way), which is handy for
+CI or containers where a file is less natural.
 
 Login is disabled entirely — `WebSecurityConfiguration` permits every request. The app is
 built for single-user, localhost-only use; the original in-memory placeholder accounts were
