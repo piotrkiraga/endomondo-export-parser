@@ -16,7 +16,8 @@ public record WorkoutReportEntry(
         Double distanceKm,
         Integer durationS,
         int pictureCount,
-        Long activityId) {
+        Long activityId,
+        String sourceFiles) {
 
     /** {@code activityId} is null for a workout not yet migrated (or the planner skipped it). */
     static WorkoutReportEntry from(ResolvedWorkout workout, Long activityId) {
@@ -31,7 +32,8 @@ public record WorkoutReportEntry(
                 workout.distanceKm(),
                 workout.durationS(),
                 workout.pictureCount(),
-                activityId);
+                activityId,
+                workout.sourceFiles());
     }
 
 }

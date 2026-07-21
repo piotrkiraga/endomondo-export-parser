@@ -133,9 +133,9 @@ public class WorkoutReportGenerator {
             section.append(" &mdash; ").append(entry.pictureCount()).append(" photo(s)");
         }
         section.append(" &mdash; ").append(activityLink(entry.activityId()))
-                .append(" &mdash; <span class=\"basename\">archive: ").append(escape(entry.basename())).append("</span>")
+                .append(" &mdash; <span class=\"basename\">Source: ").append(escape(entry.sourceFiles())).append("</span>")
                 .append("</div>\n")
-                .append("<div class=\"description\">").append(escape(entry.stravaDescription())).append("</div>\n")
+                .append("<div class=\"description\">").append(escape(tighten(entry.stravaDescription()))).append("</div>\n")
                 .append("</section>\n");
 
         return section.toString();
@@ -154,6 +154,16 @@ public class WorkoutReportGenerator {
 
     private static String formatNumber(Double value) {
         return String.format(Locale.ROOT, "%.1f", value);
+    }
+
+    /**
+     * Display-only: collapses the blank-line paragraph break {@link WorkoutDescription}
+     * puts between the place sentence and the credit stamp into a single line break, for
+     * a tighter look in this report's compact per-workout cards. The value actually sent
+     * to Strava (and shown on the migration review page) is untouched.
+     */
+    private String tighten(String description) {
+        return description == null ? null : description.replace("\n\n", "\n");
     }
 
     private String escape(String text) {

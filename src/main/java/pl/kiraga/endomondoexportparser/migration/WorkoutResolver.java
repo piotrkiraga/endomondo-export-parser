@@ -66,7 +66,7 @@ public class WorkoutResolver {
 
         PlaceDescription place = placeFor(parsed);
         String name = WorkoutNaming.resolve(planned.name(), planned.startTime(), planned.stravaSportType(), place);
-        String description = WorkoutDescription.build(dateOnly(planned.startTime()), place);
+        String description = WorkoutDescription.build(dateTime(planned.startTime()), place);
 
         return ResolvedWorkout.resolved(planned, name, description, pair);
 
@@ -83,9 +83,9 @@ public class WorkoutResolver {
         return placeLookup.lookup(firstPoint.getLatitude(), firstPoint.getLongitude()).orElse(null);
     }
 
-    /** Endomondo's start_time looks like "2015-04-11 11:37:00.0"; the date is a fixed prefix. */
-    private static String dateOnly(String startTime) {
-        return (startTime == null || startTime.length() < 10) ? startTime : startTime.substring(0, 10);
+    /** Endomondo's start_time looks like "2015-04-11 11:37:00.0"; drops only the trailing decisecond. */
+    private static String dateTime(String startTime) {
+        return (startTime == null || startTime.length() < 19) ? startTime : startTime.substring(0, 19);
     }
 
     private EndomondoJson parseQuietly(Path json) {

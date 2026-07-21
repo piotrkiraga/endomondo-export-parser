@@ -22,9 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class WorkoutReportGeneratorTest {
 
-    private static final String CREDIT_LINE =
-            "Migrated by Piotr Kiraga using endomondo-export-parser: "
-                    + "https://github.com/piotrkiraga/endomondo-export-parser";
     private static final PlaceLookup NO_PLACES = (lat, lon) -> Optional.empty();
     private static final PlaceDescription VISTULA_IN_KRAKOW =
             new PlaceDescription("Kraków", null, new NearbyFeature("Vistula", FeatureKind.WATER, 50));
@@ -47,6 +44,11 @@ public class WorkoutReportGeneratorTest {
         Files.write(workoutsDirectory.resolve(basename + ".tcx"), "<TrainingCenterDatabase/>".getBytes(StandardCharsets.UTF_8));
     }
 
+    private static String stamp(String date) {
+        return "This workout (recorded on " + date + ") is migrated from Endomondo export data by "
+                + "endomondo-export-parser: https://github.com/piotrkiraga/endomondo-export-parser.";
+    }
+
     // --- Action and resolved fields mirror the planner and Strava-naming conventions ---
 
     @Test
@@ -61,8 +63,9 @@ public class WorkoutReportGeneratorTest {
         assertEquals("Sample tracked ride", entry.stravaName());
         assertEquals("Ride", entry.stravaSportType());
         assertEquals(34.04, entry.distanceKm());
-        assertEquals("Migrated from Endomondo (recorded 2011-09-10).\n\n" + CREDIT_LINE, entry.stravaDescription());
+        assertEquals(stamp("2011-09-10 12:58:00"), entry.stravaDescription());
         assertNull(entry.reason());
+        assertEquals("Workouts/2011-09-10 12_58_59.0.json, Workouts/2011-09-10 12_58_59.0.tcx", entry.sourceFiles());
     }
 
     @Test
@@ -75,6 +78,8 @@ public class WorkoutReportGeneratorTest {
         assertEquals(PlannedAction.CREATE_MANUAL, entry.action());
         assertEquals("Sample manual walk", entry.stravaName());
         assertEquals("Walk", entry.stravaSportType());
+        assertEquals("Workouts/2014-09-16 09_05_21.0.json", entry.sourceFiles(),
+                "no paired TCX for a manual entry, so only the JSON is listed");
     }
 
     @Test
@@ -105,7 +110,7 @@ public class WorkoutReportGeneratorTest {
         WorkoutReportEntry entry = generator.build(archiveRoot).entries().get(0);
 
         assertEquals("Morning Run", entry.stravaName());
-        assertEquals("Migrated from Endomondo (recorded 2016-02-02).\n\n" + CREDIT_LINE, entry.stravaDescription());
+        assertEquals(stamp("2016-02-02 07:15:00"), entry.stravaDescription());
     }
 
     @Test
@@ -122,7 +127,7 @@ public class WorkoutReportGeneratorTest {
         WorkoutReportEntry entry = generatorWith(ALWAYS_VISTULA).build(archiveRoot).entries().get(0);
 
         assertEquals("Morning Run along Vistula in Kraków", entry.stravaName());
-        assertEquals("Migrated from Endomondo (recorded 2016-02-02). Recorded along Vistula in Kraków.\n\n" + CREDIT_LINE,
+        assertEquals("Recorded along Vistula in Kraków.\n\n" + stamp("2016-02-02 07:15:00"),
                 entry.stravaDescription());
     }
 
@@ -155,8 +160,30 @@ public class WorkoutReportGeneratorTest {
         assertTrue(html.contains("Sample manual walk"));
         assertTrue(html.contains("Upload TCX"));
         assertTrue(html.contains("Create manual"));
-        assertTrue(html.contains("Migrated from Endomondo"));
-        assertTrue(html.contains("archive: 2011-09-10 12_58_59.0"), "the basename stays visible for cross-reference");
+        assertTrue(html.contains("is migrated from Endomondo export data"));
+        assertTrue(html.contains("Source: Workouts/2011-09-10 12_58_59.0.json, Workouts/2011-09-10 12_58_59.0.tcx"),
+                "the source file(s) on disk stay visible for cross-reference");
+    }
+
+    @Test
+    void renderedDescriptionIsTighterThanTheRealOneSentToStrava(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        WorkoutReportEntry entry = generatorWith(ALWAYS_VISTULA).build(archiveRoot).entries().get(0);
+        assertTrue(entry.stravaDescription().contains("\n\n"),
+                "the value a real migration would send keeps its paragraph break");
+
+        Path outputHtmlFile = root.resolve("data").resolve("workout-report.html");
+        generatorWith(ALWAYS_VISTULA).generate(archiveRoot, outputHtmlFile);
+        String html = Files.readString(outputHtmlFile);
+
+        int start = html.indexOf("<div class=\"description\">") + "<div class=\"description\">".length();
+        String renderedDescription = html.substring(start, html.indexOf("</div>", start));
+        assertFalse(renderedDescription.contains("\n\n"), "the report's own rendering is tightened to a single line break");
+        assertTrue(renderedDescription.contains("\n"), "still two sentences, just not blank-line separated");
     }
 
     @Test

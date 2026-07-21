@@ -22,6 +22,12 @@ public record ResolvedWorkout(
         Integer durationS,
         int pictureCount) {
 
+    /** The archive file(s) this entry maps to on disk, e.g. for cross-referencing outside the app. */
+    public String sourceFiles() {
+        String json = "Workouts/" + basename + ".json";
+        return tcxFile == null ? json : json + ", Workouts/" + basename + ".tcx";
+    }
+
     /** For a skipped workout, or one whose JSON could not be re-parsed on this pass. */
     static ResolvedWorkout unresolved(WorkoutPlan planned) {
         return new ResolvedWorkout(

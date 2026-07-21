@@ -69,7 +69,7 @@
 
                             <p th:text="${workout.description}" style="white-space:pre-wrap"></p>
 
-                            <span class="text-body-secondary small" th:text="'archive: ' + ${workout.basename}">archive: basename</span>
+                            <span class="text-body-secondary small" th:text="#{migration.review.source(${workout.sourceFiles()})}">Source: Workouts/basename.json</span>
 
                         </div>
                     </div>
