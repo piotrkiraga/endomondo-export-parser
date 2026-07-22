@@ -65,9 +65,9 @@ folded into the permanent capability specs.
 - [`openspec/changes/migrate-to-strava/`](openspec/changes/migrate-to-strava/) — the change
   in flight.
 
-Day-to-day task status, backlog items, and ideas are tracked on the
-[project board](https://github.com/users/piotrkiraga/projects/1) and
-[Issues](https://github.com/piotrkiraga/endomondo-export-parser/issues); OpenSpec remains the
+Day-to-day task status, backlog items, and ideas are tracked using
+[GitHub Issues](https://github.com/piotrkiraga/endomondo-export-parser/issues) and a linked
+[GitHub Project board](https://github.com/users/piotrkiraga/projects/1); OpenSpec remains the
 source of truth for requirements and design decisions.
 
 If you want to see how decisions were reasoned about rather than just their outcome, the
@@ -118,16 +118,22 @@ Personal export data never enters this repository. The `data/` directory is git-
 and the fixtures under `src/test/resources/fixtures/` are anonymized: real coordinates and
 photo references are replaced with synthetic ones.
 
-Strava credentials (`STRAVA_CLIENT_ID`/`STRAVA_CLIENT_SECRET` from your own API application
-at [strava.com/settings/api](https://www.strava.com/settings/api)) go in a git-ignored
-`application-local.properties`, copied once from the checked-in
-`application-local.properties.example` template at the project root and filled in — no
-environment variables to re-export every session, and nothing ever committed. Plain
-environment variables still work too (Spring reads both the same way), which is handy for
-CI or containers where a file is less natural. The same file also holds an optional
-old-bike gear correction (Strava otherwise assigns whatever gear is currently your
-default to every migrated Ride, which is wrong for one recorded before you owned it) —
-blank and inert unless you set it.
+Strava credentials (`STRAVA_CLIENT_ID`/`STRAVA_CLIENT_SECRET`, from your own Strava API
+application — create one at [Strava's API Settings page](https://www.strava.com/settings/api))
+can be supplied either way Spring reads them, so pick whichever fits your workflow:
+
+- **Environment variables** — no extra file to keep track of; the natural fit for CI or
+  containers, and works just as well for everyday local use if you'd rather not maintain a
+  properties file.
+- **A git-ignored `application-local.properties` file**, copied once from the checked-in
+  `application-local.properties.example` template at the project root and filled in — no
+  environment variables to re-export in every new terminal session, and nothing ever
+  committed.
+
+Spring merges both into the same `Environment`, so nothing else needs to know which one you
+used. The same properties file also holds an optional old-bike gear correction (Strava
+otherwise assigns whatever gear is currently your default to every migrated Ride, which is
+wrong for one recorded before you owned it) — blank and inert unless you set it.
 
 Login is disabled entirely — `WebSecurityConfiguration` permits every request. The app is
 built for single-user, localhost-only use; the original in-memory placeholder accounts were
