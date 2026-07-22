@@ -8,7 +8,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 /**
- * Access/refresh token pair for the Strava API, persisted to {@code data/strava-tokens.json}.
+ * Access/refresh token pair for the Strava API, persisted to {@code data/generated/strava-tokens.json}.
  * Also doubles as the binding target for {@code POST /oauth/token} responses (which
  * additionally carry {@code expires_in} and {@code token_type}; both ignored here as
  * redundant with {@code expires_at} / constant, per developers.strava.com/swagger).

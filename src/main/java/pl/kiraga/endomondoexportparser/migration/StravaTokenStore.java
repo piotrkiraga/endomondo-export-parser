@@ -24,7 +24,7 @@ public class StravaTokenStore {
     private final ReentrantLock lock = new ReentrantLock();
 
     public StravaTokenStore() {
-        this(Path.of("data", "strava-tokens.json"));
+        this(Path.of("data", "generated", "strava-tokens.json"));
     }
 
     StravaTokenStore(Path file) {

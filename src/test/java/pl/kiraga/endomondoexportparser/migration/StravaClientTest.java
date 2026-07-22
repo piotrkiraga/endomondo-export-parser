@@ -320,7 +320,7 @@ public class StravaClientTest {
     @Test
     void waitsUntilTheNextQuarterHourBoundaryWithASmallBuffer() {
         Clock at1207 = Clock.fixed(Instant.parse("2026-07-20T12:07:30Z"), ZoneOffset.UTC);
-        StravaClient client = new StravaClient(RestClient.builder(), new StravaTokenStore(Path.of("data", "strava-tokens.json")),
+        StravaClient client = new StravaClient(RestClient.builder(), new StravaTokenStore(Path.of("data", "generated", "strava-tokens.json")),
                 "id", "secret", at1207, millis -> { });
 
         Duration wait = client.waitUntilNextQuarterHourUtc();

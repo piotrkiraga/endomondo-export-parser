@@ -65,8 +65,10 @@ folded into the permanent capability specs.
 - [`openspec/changes/migrate-to-strava/`](openspec/changes/migrate-to-strava/) — the change
   in flight.
 
-Day-to-day task status for the change in flight is also tracked on a Jira board (project
-`EEP`); OpenSpec remains the source of truth for requirements and design decisions.
+Day-to-day task status, backlog items, and ideas are tracked on the
+[project board](https://github.com/users/piotrkiraga/projects/1) and
+[Issues](https://github.com/piotrkiraga/endomondo-export-parser/issues); OpenSpec remains the
+source of truth for requirements and design decisions.
 
 If you want to see how decisions were reasoned about rather than just their outcome, the
 design documents are the place to look. A representative example is the Strava migration's
@@ -104,7 +106,7 @@ Java 17 or newer is required.
 ./mvnw test
 ```
 
-193 tests covering the parser against anonymized fixtures, the upload flow, localization
+191 tests covering the parser against anonymized fixtures, the upload flow, localization
 including Polish diacritics, the migration planner, EXIF geotagging, the Strava API client
 and OAuth flow (via `MockRestServiceServer` — no test touches the real network), and the
 OpenStreetMap reverse-geocoding clients. Tests that need a real Endomondo archive skip
@@ -134,7 +136,7 @@ this if the app is ever meant to bind beyond `localhost`.
 
 Location enrichment sends workout and photo coordinates to OpenStreetMap's public
 Nominatim and Overpass services to resolve place names — the only outbound network calls
-this app makes with archive data. Results are cached locally (`data/location-cache.json`,
+this app makes with archive data. Results are cached locally (`data/generated/location-cache.json`,
 also git-ignored) so the same real-world coordinate is never looked up twice.
 
 ## Status

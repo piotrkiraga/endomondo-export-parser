@@ -32,7 +32,7 @@ public class LocationCache {
     private Map<String, PlaceDescription> entries;
 
     public LocationCache() {
-        this(Path.of("data", "location-cache.json"));
+        this(Path.of("data", "generated", "location-cache.json"));
     }
 
     LocationCache(Path file) {

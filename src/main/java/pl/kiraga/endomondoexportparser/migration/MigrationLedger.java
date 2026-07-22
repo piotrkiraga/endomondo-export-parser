@@ -20,7 +20,7 @@ import java.util.function.UnaryOperator;
 
 /**
  * Tracks each workout's migration outcome across runs, persisted to
- * {@code data/strava-migration-ledger.json} (git-ignored with the rest of personal
+ * {@code data/generated/strava-migration-ledger.json} (git-ignored with the rest of personal
  * data). An entry is written {@link LedgerStatus#PENDING} before the Strava call that
  * would create/upload it, then finalized {@link LedgerStatus#DONE} or
  * {@link LedgerStatus#FAILED} after — so an interrupted run leaves a PENDING row as a
@@ -47,7 +47,7 @@ public class MigrationLedger {
     private final ReentrantLock lock = new ReentrantLock();
 
     public MigrationLedger() {
-        this(Path.of("data", "strava-migration-ledger.json"), Clock.systemUTC());
+        this(Path.of("data", "generated", "strava-migration-ledger.json"), Clock.systemUTC());
     }
 
     MigrationLedger(Path file, Clock clock) {
