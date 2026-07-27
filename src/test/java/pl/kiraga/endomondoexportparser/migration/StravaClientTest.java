@@ -423,6 +423,27 @@ public class StravaClientTest {
     }
 
     @Test
+    void aConnectionErrorOnTheRetryAfter429IsWrappedNotLeftToEscapeRaw(@TempDir Path dir) {
+        // Real incident 2026-07-27: a 429 correctly waited for the next window, but the
+        // retry itself hit a plain connection reset (no HTTP status at all) rather than
+        // another 429 - that used to escape as a raw ResourceAccessException, bypassing
+        // migrateOne's catch (StravaApiException) and leaving the ledger entry stuck at
+        // PENDING forever instead of FAILED with a reason.
+        StravaClient client = newClient(dir);
+        storeToken("t", Instant.parse("2026-07-20T13:00:00Z"));
+
+        server.expect(requestTo("https://www.strava.com/api/v3/uploads/1"))
+                .andRespond(withTooManyRequests());
+        server.expect(requestTo("https://www.strava.com/api/v3/uploads/1"))
+                .andRespond(request -> {
+                    throw new java.io.IOException("Connection reset");
+                });
+
+        StravaApiException exception = assertThrows(StravaApiException.class, () -> client.checkUploadStatus(1));
+        assertTrue(exception.getMessage().contains("Connection reset"));
+    }
+
+    @Test
     void otherHttpErrorsAreWrappedNotRetried(@TempDir Path dir) {
         StravaClient client = newClient(dir);
         storeToken("t", Instant.parse("2026-07-20T13:00:00Z"));

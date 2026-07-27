@@ -372,6 +372,8 @@ public class StravaClient {
                 throw new StravaApiException("Still rate-limited after waiting for the next window", stillLimited);
             } catch (HttpStatusCodeException e2) {
                 throw new StravaApiException(describeFault(e2), e2);
+            } catch (RestClientException e2) {
+                throw new StravaApiException("Strava API call failed: " + e2.getMessage(), e2);
             }
         } catch (HttpStatusCodeException e) {
             throw new StravaApiException(describeFault(e), e);
