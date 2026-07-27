@@ -1,8 +1,8 @@
 <html xmlns:th="http://www.w3.org/1999/xhtml">
-<head th:replace="fragments/head :: head(#{title.migrationReviewSummary})"></head>
+<head th:replace="~{fragments/head :: head(#{title.migrationReviewSummary})}"></head>
 <body>
 
-<div th:replace="fragments/header :: header(#{title.migrationReviewSummary})"/>
+<div th:replace="~{fragments/header :: header(#{title.migrationReviewSummary})}"/>
 
 <section class="my-5">
     <div class="container">
@@ -62,7 +62,7 @@
     </div>
 </section>
 
-<div th:replace="fragments/footer :: footer"/>
+<div th:replace="~{fragments/footer :: footer}"/>
 
 </body>
 </html>

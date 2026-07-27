@@ -30,3 +30,10 @@ STRAVA_CLIENT_SECRET=
 # set; anything after keeps Strava's own (presumably now-correct) default.
 endomondo.strava.old-bike-gear-id=
 endomondo.strava.old-bike-cutoff-date=
+
+# Optional dev-mode toggle: logs every request/response body exchanged with Strava
+# (method, URI, body) under the "pl.kiraga.endomondoexportparser.migration.StravaTraffic"
+# logger at INFO — useful for seeing exactly what a migration run sends. The
+# Authorization bearer token and OAuth client_secret are always redacted, never logged.
+# Off by default (in application.properties); uncomment to enable locally.
+#endomondo.strava.log-traffic=true

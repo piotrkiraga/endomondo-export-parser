@@ -1,10 +1,14 @@
 package pl.kiraga.endomondoexportparser.migration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -13,6 +17,11 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
@@ -23,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.LongConsumer;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 /**
  * Strava API v3 client: refreshes tokens, uploads TCX files and polls their processing
@@ -37,6 +47,14 @@ public class StravaClient {
 
     private static final Duration REFRESH_BUFFER = Duration.ofMinutes(5);
 
+    /** Dev-mode traffic log — enable with endomondo.strava.log-traffic=true, see the .example file. */
+    private static final Logger TRAFFIC_LOG = LoggerFactory.getLogger(
+            "pl.kiraga.endomondoexportparser.migration.StravaTraffic");
+    private static final int MAX_LOGGED_BODY_CHARS = 4000;
+    private static final Pattern CLIENT_SECRET_PARAM = Pattern.compile("(client_secret=)[^&]*");
+    private static final Pattern SENSITIVE_JSON_FIELD = Pattern.compile(
+            "\"(access_token|refresh_token|client_secret)\"\\s*:\\s*\"[^\"]*\"");
+
     private final RestClient restClient;
     private final StravaTokenStore tokenStore;
     private final String clientId;
@@ -47,18 +65,86 @@ public class StravaClient {
     @Autowired
     public StravaClient(RestClient.Builder builder, StravaTokenStore tokenStore,
                          @Value("${STRAVA_CLIENT_ID:}") String clientId,
-                         @Value("${STRAVA_CLIENT_SECRET:}") String clientSecret) {
-        this(builder, tokenStore, clientId, clientSecret, Clock.systemUTC(), StravaClient::realSleep);
+                         @Value("${STRAVA_CLIENT_SECRET:}") String clientSecret,
+                         @Value("${endomondo.strava.log-traffic:false}") boolean logTraffic) {
+        this(builder, tokenStore, clientId, clientSecret, Clock.systemUTC(), StravaClient::realSleep, logTraffic);
     }
 
     StravaClient(RestClient.Builder builder, StravaTokenStore tokenStore, String clientId, String clientSecret,
                  Clock clock, LongConsumer sleeper) {
-        this.restClient = builder.baseUrl("https://www.strava.com").build();
+        this(builder, tokenStore, clientId, clientSecret, clock, sleeper, false);
+    }
+
+    StravaClient(RestClient.Builder builder, StravaTokenStore tokenStore, String clientId, String clientSecret,
+                 Clock clock, LongConsumer sleeper, boolean logTraffic) {
+        RestClient.Builder configured = builder.baseUrl("https://www.strava.com");
+        if (logTraffic) {
+            configured = configured.requestInterceptor((request, body, execution) -> {
+                TRAFFIC_LOG.info(">> {} {}\n{}", request.getMethod(), redact(request.getURI()), truncate(body));
+                ClientHttpResponse response = execution.execute(request, body);
+                byte[] responseBody = response.getBody().readAllBytes();
+                TRAFFIC_LOG.info("<< {} {} {}\n{}", response.getStatusCode(), request.getMethod(),
+                        redact(request.getURI()), truncate(responseBody));
+                return new BufferedClientHttpResponse(response, responseBody);
+            });
+        }
+        this.restClient = configured.build();
         this.tokenStore = tokenStore;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.clock = clock;
         this.sleeper = sleeper;
+    }
+
+    private static String redact(URI uri) {
+        return CLIENT_SECRET_PARAM.matcher(uri.toString()).replaceAll("$1***");
+    }
+
+    private static String truncate(byte[] bytes) {
+        String text = new String(bytes, StandardCharsets.UTF_8);
+        text = SENSITIVE_JSON_FIELD.matcher(text).replaceAll(m -> "\"" + m.group(1) + "\":\"***\"");
+        return text.length() > MAX_LOGGED_BODY_CHARS
+                ? text.substring(0, MAX_LOGGED_BODY_CHARS) + "... (truncated, " + text.length() + " chars total)"
+                : text;
+    }
+
+    /**
+     * A request's response body can only be read once; this replays the buffered bytes to
+     * the real caller after the interceptor has logged them.
+     */
+    private static final class BufferedClientHttpResponse implements ClientHttpResponse {
+        private final ClientHttpResponse delegate;
+        private final byte[] body;
+
+        BufferedClientHttpResponse(ClientHttpResponse delegate, byte[] body) {
+            this.delegate = delegate;
+            this.body = body;
+        }
+
+        @Override
+        public InputStream getBody() {
+            return new ByteArrayInputStream(body);
+        }
+
+        @Override
+        public HttpStatusCode getStatusCode() throws IOException {
+            return delegate.getStatusCode();
+        }
+
+        @Override
+        public String getStatusText() throws IOException {
+            return delegate.getStatusText();
+        }
+
+        @Override
+        public void close() {
+            delegate.close();
+        }
+
+        @Override
+        public HttpHeaders getHeaders() {
+            return delegate.getHeaders();
+        }
     }
 
     private static void realSleep(long millis) {

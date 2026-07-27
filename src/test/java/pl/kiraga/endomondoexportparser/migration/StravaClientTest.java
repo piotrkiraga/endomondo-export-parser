@@ -331,6 +331,66 @@ public class StravaClientTest {
         assertEquals("Trail Shoes", athlete.shoes().get(0).name());
     }
 
+    // --- Dev-mode traffic logging ---
+
+    @Test
+    void devModeTrafficLoggingRedactsTheClientSecretAndNeverLogsTheBearerToken(@TempDir Path dir) {
+        builder = RestClient.builder();
+        server = MockRestServiceServer.bindTo(builder).build();
+        tokenStore = new StravaTokenStore(dir.resolve("tokens.json"));
+        StravaClient client = new StravaClient(builder, tokenStore, "client-id", "super-secret-value",
+                FIXED_NOON, millis -> { }, true);
+
+        ch.qos.logback.classic.Logger trafficLogger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(
+                        "pl.kiraga.endomondoexportparser.migration.StravaTraffic");
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        trafficLogger.addAppender(appender);
+
+        try {
+            storeToken("the-real-bearer-token", Instant.parse("2026-07-20T13:00:00Z"));
+            server.expect(requestTo(
+                            "https://www.strava.com/oauth/token?client_id=client-id&client_secret=super-secret-value&grant_type=refresh_token&refresh_token=old-refresh"))
+                    .andRespond(withSuccess("""
+                            {"access_token": "the-real-bearer-token", "refresh_token": "new-refresh", "expires_at": 1900000000}
+                            """, APPLICATION_JSON));
+            server.expect(requestTo("https://www.strava.com/api/v3/gear/b18387038"))
+                    .andExpect(header("Authorization", "Bearer the-real-bearer-token"))
+                    .andRespond(withSuccess("{\"id\": \"b18387038\", \"name\": \"Trek Checkpoint\"}", APPLICATION_JSON));
+
+            client.refreshAccessToken("old-refresh");
+            client.getGear("b18387038");
+
+            String allLogged = appender.list.stream()
+                    .map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage)
+                    .reduce("", (a, b) -> a + "\n" + b);
+
+            assertTrue(allLogged.contains("client_secret=***"), "client_secret query param must be redacted");
+            assertFalse(allLogged.contains("super-secret-value"), "the real client secret must never be logged");
+            assertFalse(allLogged.contains("the-real-bearer-token"), "the bearer token must never be logged");
+            assertTrue(allLogged.contains("Trek Checkpoint"), "the actual response body should still be logged");
+        } finally {
+            trafficLogger.detachAppender(appender);
+        }
+    }
+
+    @Test
+    void trafficLoggingIsOffByDefault(@TempDir Path dir) {
+        // The 6-arg constructor (used everywhere else in this file) must not attach any
+        // interceptor - a plain smoke check that the default-off wiring didn't regress.
+        StravaClient client = newClient(dir);
+        storeToken("t", Instant.parse("2026-07-20T13:00:00Z"));
+
+        server.expect(requestTo("https://www.strava.com/api/v3/gear/b1"))
+                .andRespond(withSuccess("{\"id\": \"b1\", \"name\": \"Bike\"}", APPLICATION_JSON));
+
+        StravaGear gear = client.getGear("b1");
+
+        assertEquals("Bike", gear.name());
+    }
+
     // --- Rate limiting ---
 
     @Test

@@ -1,15 +1,15 @@
 <html xmlns:th="http://www.w3.org/1999/xhtml">
-<head th:replace="fragments/head :: head(#{title.upload})"></head>
+<head th:replace="~{fragments/head :: head(#{title.upload})}"></head>
 <body>
 
-<div th:replace="fragments/header :: header(#{title.upload})"/>
+<div th:replace="~{fragments/header :: header(#{title.upload})}"/>
 
 <section class="my-5">
     <div class="container">
         <div class="row">
             <div class="col-md-10 mx-auto">
 
-                <span th:replace="fragments/messages-errors"/>
+                <span th:replace="~{fragments/messages-errors}"/>
 
                 <div class="card mb-4">
                     <div class="card-body">
@@ -49,7 +49,7 @@
     </div>
 </section>
 
-<div th:replace="fragments/footer :: footer"/>
+<div th:replace="~{fragments/footer :: footer}"/>
 
 </body>
 </html>

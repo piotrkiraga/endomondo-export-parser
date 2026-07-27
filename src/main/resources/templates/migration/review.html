@@ -1,8 +1,8 @@
 <html xmlns:th="http://www.w3.org/1999/xhtml">
-<head th:replace="fragments/head :: head(#{title.migrationReview})"></head>
+<head th:replace="~{fragments/head :: head(#{title.migrationReview})}"></head>
 <body>
 
-<div th:replace="fragments/header :: header(#{title.migrationReview})"/>
+<div th:replace="~{fragments/header :: header(#{title.migrationReview})}"/>
 
 <section class="my-5">
     <div class="container">
@@ -10,7 +10,7 @@
             <div class="col-md-10 mx-auto">
 
                 <div class="mb-4">
-                    <span th:replace="fragments/strava-status :: strava-status"/>
+                    <span th:replace="~{fragments/strava-status :: strava-status}"/>
                 </div>
 
                 <div th:unless="${archivePresent}" class="alert alert-warning"
@@ -126,7 +126,7 @@
     </div>
 </section>
 
-<div th:replace="fragments/footer :: footer"/>
+<div th:replace="~{fragments/footer :: footer}"/>
 
 </body>
 </html>
