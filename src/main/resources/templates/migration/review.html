@@ -10,11 +10,7 @@
             <div class="col-md-10 mx-auto">
 
                 <div class="mb-4">
-                    <span th:if="${stravaConnected}" class="badge text-bg-success" th:text="#{strava.connected}">Connected to Strava</span>
-                    <th:block th:unless="${stravaConnected}">
-                        <a class="btn btn-sm btn-outline-primary" th:href="@{/strava/connect}" th:text="#{strava.connect}">Connect to Strava</a>
-                        <span class="badge text-bg-secondary ms-2" th:text="#{strava.notConnected}">Not connected to Strava</span>
-                    </th:block>
+                    <span th:replace="fragments/strava-status :: strava-status"/>
                 </div>
 
                 <div th:unless="${archivePresent}" class="alert alert-warning"
@@ -64,6 +60,14 @@
                                 <div class="detail-row" th:if="${formattedDuration != null}">
                                     <span class="detail-label" th:text="#{summary.duration}">Duration</span>
                                     <span class="detail-value" th:text="${formattedDuration}"></span>
+                                </div>
+                                <div class="detail-row" th:if="${isDone and gearLookupFailed}">
+                                    <span class="detail-label" th:text="#{migration.review.gearOnStrava}">Gear on Strava</span>
+                                    <span class="detail-value text-body-secondary" th:text="#{migration.review.gearLookupFailed}">Could not check</span>
+                                </div>
+                                <div class="detail-row" th:if="${isDone and not gearLookupFailed}">
+                                    <span class="detail-label" th:text="#{migration.review.gearOnStrava}">Gear on Strava</span>
+                                    <span class="detail-value" th:text="${currentGearDisplay != null} ? ${currentGearDisplay} : #{migration.review.gearNone}">gear name (id)</span>
                                 </div>
                             </div>
 

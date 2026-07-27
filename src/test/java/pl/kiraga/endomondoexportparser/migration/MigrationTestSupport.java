@@ -23,7 +23,7 @@ public final class MigrationTestSupport {
     }
 
     public record Rig(MockRestServiceServer server, MigrationExecutor executor, MigrationLedger ledger,
-                       WorkoutPhotoResolver photoResolver, StravaTokenStore tokenStore) {
+                       WorkoutPhotoResolver photoResolver, StravaTokenStore tokenStore, StravaClient stravaClient) {
     }
 
     /** {@code dir} is a @TempDir; tokens/ledger files are written under it, never under the real data/. */
@@ -40,10 +40,12 @@ public final class MigrationTestSupport {
         PlaceLookup noPlaces = (lat, lon) -> Optional.empty();
         WorkoutResolver resolver = new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), noPlaces);
         MigrationLedger ledger = new MigrationLedger(dir.resolve("ledger.json"), clock);
-        MigrationExecutor executor = new MigrationExecutor(planner, resolver, ledger, stravaClient, new RequestThrottle(0), millis -> { });
+        OldBikeGearResolver oldBikeGearResolver = new OldBikeGearResolver();
+        MigrationExecutor executor = new MigrationExecutor(planner, resolver, ledger, stravaClient, oldBikeGearResolver,
+                new RequestThrottle(0), millis -> { });
         WorkoutPhotoResolver photoResolver = new WorkoutPhotoResolver(new EndomondoJsonParser(), new PhotoGeotagger());
 
-        return new Rig(server, executor, ledger, photoResolver, tokenStore);
+        return new Rig(server, executor, ledger, photoResolver, tokenStore, stravaClient);
 
     }
 

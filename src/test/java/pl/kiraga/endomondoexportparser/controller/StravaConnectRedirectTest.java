@@ -34,7 +34,8 @@ public class StravaConnectRedirectTest {
         assertTrue(location.startsWith("https://www.strava.com/oauth/authorize?"), location);
         assertTrue(location.contains("client_id=test-client-id"), location);
         assertTrue(location.contains("response_type=code"), location);
-        assertTrue(location.contains("scope=activity:write") || location.contains("scope=activity%3Awrite"), location);
+        assertTrue(location.contains("activity:write") || location.contains("activity%3Awrite"), location);
+        assertTrue(location.contains("activity:read_all") || location.contains("activity%3Aread_all"), location);
         assertTrue(location.contains("state="), location);
         assertTrue(location.contains("redirect_uri="), location);
     }

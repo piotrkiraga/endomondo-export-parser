@@ -12,15 +12,12 @@
                 <span th:replace="fragments/messages-errors"/>
 
                 <div class="mb-4">
-                    <span th:if="${stravaConnected}" class="badge text-bg-success" th:text="#{strava.connected}">Connected to Strava</span>
-                    <th:block th:unless="${stravaConnected}">
-                        <a class="btn btn-sm btn-outline-primary" th:href="@{/strava/connect}" th:text="#{strava.connect}">Connect to Strava</a>
-                        <span class="badge text-bg-secondary ms-2" th:text="#{strava.notConnected}">Not connected to Strava</span>
-                    </th:block>
+                    <span th:replace="fragments/strava-status :: strava-status"/>
                 </div>
 
                 <p th:text="#{migration.workoutReport.description}">
-                    Preview exactly what would be sent to Strava, without sending anything.
+                    See exactly what would be sent to Strava for every workout, whether it's still pending or
+                    already migrated.
                 </p>
 
                 <div th:unless="${archivePresent}" class="alert alert-warning"

@@ -32,7 +32,18 @@ public class WorkoutReportGeneratorTest {
     private WorkoutReportGenerator generatorWith(PlaceLookup placeLookup) {
         return new WorkoutReportGenerator(
                 new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
-                new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), placeLookup));
+                new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), placeLookup),
+                new OldBikeGearResolver());
+    }
+
+    private WorkoutReportGenerator generatorWithOldBikeGear(String gearId, String cutoffDate) {
+        OldBikeGearResolver oldBikeGearResolver = new OldBikeGearResolver();
+        oldBikeGearResolver.setOldBikeGearId(gearId);
+        oldBikeGearResolver.setOldBikeCutoffDate(cutoffDate);
+        return new WorkoutReportGenerator(
+                new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
+                new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), NO_PLACES),
+                oldBikeGearResolver);
     }
 
     private void copyFixture(Path workoutsDirectory, String fixture, String basename) throws Exception {
@@ -66,6 +77,29 @@ public class WorkoutReportGeneratorTest {
         assertEquals(stamp("2011-09-10 12:58:00"), entry.stravaDescription());
         assertNull(entry.reason());
         assertEquals("Workouts/2011-09-10 12_58_59.0.json, Workouts/2011-09-10 12_58_59.0.tcx", entry.sourceFiles());
+    }
+
+    @Test
+    void trackedWorkoutShowsThePlannedOldBikeGearWhenOnOrBeforeTheCutoff(@TempDir Path archiveRoot) throws Exception {
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        WorkoutReportEntry entry = generatorWithOldBikeGear("b18387038", "2021-01-31")
+                .build(archiveRoot).entries().get(0);
+
+        assertEquals("b18387038", entry.gearId());
+    }
+
+    @Test
+    void trackedWorkoutHasNoGearWhenTheOldBikeCorrectionIsUnconfigured(@TempDir Path archiveRoot) throws Exception {
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        WorkoutReportEntry entry = generator.build(archiveRoot).entries().get(0);
+
+        assertNull(entry.gearId());
     }
 
     @Test

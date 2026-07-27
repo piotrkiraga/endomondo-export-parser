@@ -71,7 +71,7 @@ public class StravaOAuthController extends BaseController {
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("response_type", "code")
                 .queryParam("approval_prompt", "auto")
-                .queryParam("scope", "activity:write")
+                .queryParam("scope", "activity:write,activity:read_all")
                 .queryParam("state", state)
                 .build()
                 .toUriString();

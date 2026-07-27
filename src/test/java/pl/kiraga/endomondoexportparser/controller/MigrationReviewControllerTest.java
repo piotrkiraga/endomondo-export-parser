@@ -47,7 +47,7 @@ public class MigrationReviewControllerTest {
         server = rig.server();
 
         MigrationReviewController controller = new MigrationReviewController(
-                rig.executor(), rig.ledger(), rig.photoResolver(), rig.tokenStore());
+                rig.executor(), rig.ledger(), rig.photoResolver(), rig.tokenStore(), rig.stravaClient());
         controller.setArchiveRootProperty(dir.resolve("archive").toString());
         controller.setPhotoReportOutputDirectory(dir.resolve("photo-report").toString());
         return controller;
@@ -162,12 +162,18 @@ public class MigrationReviewControllerTest {
         ledger.markDone(TRACKED_BASENAME, 777L);
         MigrationReviewController controller = controllerFor(dir);
 
+        server.expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andRespond(withSuccess("{\"id\": 777, \"gear_id\": \"b18387038\"}", APPLICATION_JSON));
+        server.expect(requestTo("https://www.strava.com/api/v3/gear/b18387038"))
+                .andRespond(withSuccess("{\"id\": \"b18387038\", \"name\": \"Trek Checkpoint\"}", APPLICATION_JSON));
+
         ModelAndView mav = controller.view(new ModelAndView(), 0);
 
         assertEquals(Boolean.TRUE, mav.getModel().get("isDone"));
         assertEquals(Boolean.TRUE, mav.getModel().get("hasDecision"));
         LedgerEntry entry = (LedgerEntry) mav.getModel().get("ledgerEntry");
         assertEquals(777L, entry.activityId());
+        assertEquals("Trek Checkpoint (b18387038)", mav.getModel().get("currentGearDisplay"));
     }
 
     // --- Migrate: always allowed, even when already decided ---

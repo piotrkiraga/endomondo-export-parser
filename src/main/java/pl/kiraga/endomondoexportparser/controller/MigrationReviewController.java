@@ -12,6 +12,10 @@ import pl.kiraga.endomondoexportparser.migration.MigrationExecutor;
 import pl.kiraga.endomondoexportparser.migration.MigrationLedger;
 import pl.kiraga.endomondoexportparser.migration.PlannedAction;
 import pl.kiraga.endomondoexportparser.migration.ResolvedWorkout;
+import pl.kiraga.endomondoexportparser.migration.StravaActivity;
+import pl.kiraga.endomondoexportparser.migration.StravaApiException;
+import pl.kiraga.endomondoexportparser.migration.StravaClient;
+import pl.kiraga.endomondoexportparser.migration.StravaGear;
 import pl.kiraga.endomondoexportparser.migration.StravaTokenStore;
 import pl.kiraga.endomondoexportparser.migration.WorkoutPhotoResolver;
 
@@ -39,6 +43,7 @@ public class MigrationReviewController extends BaseController {
     private final MigrationLedger ledger;
     private final WorkoutPhotoResolver photoResolver;
     private final StravaTokenStore stravaTokenStore;
+    private final StravaClient stravaClient;
 
     @Value("${endomondo.archive.root}")
     private String archiveRootProperty;
@@ -47,11 +52,13 @@ public class MigrationReviewController extends BaseController {
     private String photoReportOutputDirectory;
 
     public MigrationReviewController(MigrationExecutor executor, MigrationLedger ledger,
-                                      WorkoutPhotoResolver photoResolver, StravaTokenStore stravaTokenStore) {
+                                      WorkoutPhotoResolver photoResolver, StravaTokenStore stravaTokenStore,
+                                      StravaClient stravaClient) {
         this.executor = executor;
         this.ledger = ledger;
         this.photoResolver = photoResolver;
         this.stravaTokenStore = stravaTokenStore;
+        this.stravaClient = stravaClient;
     }
 
     /** {@code @Value} fields aren't populated outside a Spring context; tests set them directly. */
@@ -211,6 +218,20 @@ public class MigrationReviewController extends BaseController {
         return String.format(Locale.ROOT, "%.1f", km);
     }
 
+    /**
+     * "{name} ({id})", e.g. "Trek Checkpoint (b18387038)" — falls back to the bare id if
+     * the gear's name can't be looked up (a second, independent Strava call from the
+     * activity read above; its failure doesn't invalidate the id we already have).
+     */
+    private String gearDisplay(String gearId) {
+        try {
+            StravaGear gear = stravaClient.getGear(gearId);
+            return gear.name() == null || gear.name().isBlank() ? gearId : gear.name() + " (" + gearId + ")";
+        } catch (StravaApiException e) {
+            return gearId;
+        }
+    }
+
     private List<ResolvedWorkout> actionable(Path archiveRoot) {
         return executor.resolveAll(archiveRoot).stream()
                 .filter(workout -> workout.action() != PlannedAction.SKIP)
@@ -241,10 +262,22 @@ public class MigrationReviewController extends BaseController {
 
         Optional<LedgerEntry> entry = ledger.find(workout.basename());
         modelAndView.addObject("ledgerEntry", entry.orElse(null));
-        modelAndView.addObject("isDone", entry.map(e -> e.status() == LedgerStatus.DONE).orElse(false));
+        boolean isDone = entry.map(e -> e.status() == LedgerStatus.DONE).orElse(false);
+        modelAndView.addObject("isDone", isDone);
         modelAndView.addObject("isFailed", entry.map(e -> e.status() == LedgerStatus.FAILED).orElse(false));
         modelAndView.addObject("isSkipped", entry.map(e -> e.status() == LedgerStatus.SKIPPED).orElse(false));
         modelAndView.addObject("hasDecision", entry.map(e -> e.status() != LedgerStatus.PENDING).orElse(false));
+
+        if (isDone && stravaTokenStore.load().isPresent()) {
+            try {
+                StravaActivity current = stravaClient.getActivity(entry.get().activityId());
+                String gearId = current.gearId();
+                modelAndView.addObject("currentGearDisplay", gearId == null || gearId.isBlank() ? null : gearDisplay(gearId));
+                modelAndView.addObject("gearLookupFailed", false);
+            } catch (StravaApiException e) {
+                modelAndView.addObject("gearLookupFailed", true);
+            }
+        }
 
         Path photoReportRoot = Path.of(photoReportOutputDirectory).toAbsolutePath().normalize();
         Path photoCopiesDirectory = photoReportRoot.resolve("photos");

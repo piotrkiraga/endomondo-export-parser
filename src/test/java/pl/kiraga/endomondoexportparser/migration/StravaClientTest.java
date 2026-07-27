@@ -271,6 +271,38 @@ public class StravaClientTest {
         server.verify();
     }
 
+    // --- Reading an activity back ---
+
+    @Test
+    void getActivityReadsBackTheGearIdStravaActuallyHasStored(@TempDir Path dir) {
+        StravaClient client = newClient(dir);
+        storeToken("t", Instant.parse("2026-07-20T13:00:00Z"));
+
+        server.expect(requestTo("https://www.strava.com/api/v3/activities/42"))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("{\"id\": 42, \"gear_id\": \"b18387038\"}", APPLICATION_JSON));
+
+        StravaActivity activity = client.getActivity(42);
+
+        assertEquals(42L, activity.id());
+        assertEquals("b18387038", activity.gearId());
+    }
+
+    @Test
+    void getGearReadsBackItsHumanReadableName(@TempDir Path dir) {
+        StravaClient client = newClient(dir);
+        storeToken("t", Instant.parse("2026-07-20T13:00:00Z"));
+
+        server.expect(requestTo("https://www.strava.com/api/v3/gear/b18387038"))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("{\"id\": \"b18387038\", \"name\": \"Trek Checkpoint\"}", APPLICATION_JSON));
+
+        StravaGear gear = client.getGear("b18387038");
+
+        assertEquals("b18387038", gear.id());
+        assertEquals("Trek Checkpoint", gear.name());
+    }
+
     // --- Rate limiting ---
 
     @Test

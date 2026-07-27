@@ -39,8 +39,10 @@ sends it — so migrating means clicking through your history, not trusting a bu
   resolved via OpenStreetMap and cached so the same real-world place is never looked up
   twice.
 - **Hosts its own Strava connection.** An OAuth authorization-code flow lets it call
-  Strava's API on your behalf, scoped to `activity:write` only — it never reads your
-  existing activities.
+  Strava's API on your behalf, scoped to `activity:write` (create/update migrated
+  activities) and `activity:read_all` (confirm what Strava actually has on file for an
+  already-migrated activity, e.g. its gear — needed because Strava's write-side gear
+  correction doesn't reliably apply, see "A note on the data" below).
 - **Migrates one workout at a time, by hand.** A review screen shows each workout's real
   name, sport, description, and photo thumbnails (geotagged copies, each with a
   click-to-copy local path, ready to attach manually — the one thing the API can't do),
@@ -133,7 +135,14 @@ can be supplied either way Spring reads them, so pick whichever fits your workfl
 Spring merges both into the same `Environment`, so nothing else needs to know which one you
 used. The same properties file also holds an optional old-bike gear correction (Strava
 otherwise assigns whatever gear is currently your default to every migrated Ride, which is
-wrong for one recorded before you owned it) — blank and inert unless you set it.
+wrong for one recorded before you owned it) — blank and inert unless you set it. The workout
+report shows it as *planned* gear (a bare id — the report is offline and never calls Strava);
+Strava's public API accepts this correction but doesn't reliably apply it (confirmed
+2026-07-22, a platform limitation, not something this app can work around), so the migration
+review page shows *confirmed* gear instead — its "Gear on Strava" row reads the activity back
+from Strava directly, by name (e.g. "Trek Checkpoint (b18387038)"), rather than trusting the
+write call. If it still shows the wrong gear, correct it once by hand via Strava's own Edit
+Activity page.
 
 Login is disabled entirely — `WebSecurityConfiguration` permits every request. The app is
 built for single-user, localhost-only use; the original in-memory placeholder accounts were

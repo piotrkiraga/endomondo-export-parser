@@ -28,10 +28,13 @@ public class WorkoutReportGenerator {
 
     private final MigrationPlanner planner;
     private final WorkoutResolver resolver;
+    private final OldBikeGearResolver oldBikeGearResolver;
 
-    public WorkoutReportGenerator(MigrationPlanner planner, WorkoutResolver resolver) {
+    public WorkoutReportGenerator(MigrationPlanner planner, WorkoutResolver resolver,
+                                   OldBikeGearResolver oldBikeGearResolver) {
         this.planner = planner;
         this.resolver = resolver;
+        this.oldBikeGearResolver = oldBikeGearResolver;
     }
 
     /** Dry-run: no workout has a Strava activity id yet. */
@@ -54,7 +57,7 @@ public class WorkoutReportGenerator {
 
         List<WorkoutReportEntry> entries = new ArrayList<>();
         for (ResolvedWorkout workout : resolved) {
-            entries.add(WorkoutReportEntry.from(workout, activityIdsByBasename.get(workout.basename())));
+            entries.add(WorkoutReportEntry.from(workout, activityIdsByBasename.get(workout.basename()), oldBikeGearResolver));
         }
 
         return new WorkoutReport(List.copyOf(entries), plan.tracksWithoutMetadata());
@@ -131,6 +134,13 @@ public class WorkoutReportGenerator {
         }
         if (entry.pictureCount() > 0) {
             section.append(" &mdash; ").append(entry.pictureCount()).append(" photo(s)");
+        }
+        if (entry.gearId() != null) {
+            // "Planned", not "confirmed": this report is offline (no Strava reads at all,
+            // see design.md), so it can only show what the app would try to send, which
+            // Strava's write API doesn't reliably apply — see the migration review page's
+            // live "Gear on Strava" row for what actually landed.
+            section.append(" &mdash; planned gear: ").append(escape(entry.gearId()));
         }
         section.append(" &mdash; ").append(activityLink(entry.activityId()))
                 .append(" &mdash; <span class=\"basename\">Source: ").append(escape(entry.sourceFiles())).append("</span>")

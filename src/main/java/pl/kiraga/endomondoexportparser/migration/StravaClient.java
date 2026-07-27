@@ -228,6 +228,31 @@ public class StravaClient {
 
     }
 
+    /**
+     * Reads an activity back as Strava currently has it stored — in particular
+     * {@link StravaActivity#gearId}, which a create/update call's own response echoes
+     * back unreliably (see the "old-bike gear correction" decision in design.md: the
+     * public API has accepted and 200'd a {@code gear_id} that it silently never
+     * applied). A separate GET is the only trustworthy way to see what Strava actually
+     * has on file.
+     */
+    public StravaActivity getActivity(long activityId) {
+        return withRetryOn429(() -> restClient.get()
+                .uri("/api/v3/activities/{id}", activityId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken())
+                .retrieve()
+                .body(StravaActivity.class));
+    }
+
+    /** Looks up a piece of gear's human-readable name, e.g. for displaying alongside its bare id. */
+    public StravaGear getGear(String gearId) {
+        return withRetryOn429(() -> restClient.get()
+                .uri("/api/v3/gear/{id}", gearId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken())
+                .retrieve()
+                .body(StravaGear.class));
+    }
+
     // --- Rate limiting ---
 
     /**

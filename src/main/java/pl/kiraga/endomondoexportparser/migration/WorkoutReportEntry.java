@@ -17,10 +17,11 @@ public record WorkoutReportEntry(
         Integer durationS,
         int pictureCount,
         Long activityId,
+        String gearId,
         String sourceFiles) {
 
     /** {@code activityId} is null for a workout not yet migrated (or the planner skipped it). */
-    static WorkoutReportEntry from(ResolvedWorkout workout, Long activityId) {
+    static WorkoutReportEntry from(ResolvedWorkout workout, Long activityId, OldBikeGearResolver oldBikeGearResolver) {
         return new WorkoutReportEntry(
                 workout.basename(),
                 workout.action(),
@@ -33,6 +34,7 @@ public record WorkoutReportEntry(
                 workout.durationS(),
                 workout.pictureCount(),
                 activityId,
+                oldBikeGearResolver.gearIdFor(workout.stravaSportType(), workout.startTime()),
                 workout.sourceFiles());
     }
 

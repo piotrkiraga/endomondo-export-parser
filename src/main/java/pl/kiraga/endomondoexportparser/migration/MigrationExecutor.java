@@ -1,7 +1,6 @@
 package pl.kiraga.endomondoexportparser.migration;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
@@ -31,7 +30,7 @@ import java.util.function.LongConsumer;
  * best-effort: the ledger marks {@code DONE} as soon as an activity id exists (before
  * the update call), since that id is what prevents a duplicate on the next run, not
  * whether the cosmetic correction succeeded. The same call also optionally corrects
- * gear on old Rides, see {@link #gearIdFor}.
+ * gear on old Rides, see {@link OldBikeGearResolver}.
  */
 @Service
 public class MigrationExecutor {
@@ -42,53 +41,31 @@ public class MigrationExecutor {
     private static final int MAX_UPLOAD_POLL_ATTEMPTS = 30;
     private static final long UPLOAD_POLL_INTERVAL_MILLIS = 2000;
 
-    private static final String OLD_BIKE_SPORT_TYPE = "Ride";
-
     private final MigrationPlanner planner;
     private final WorkoutResolver resolver;
     private final MigrationLedger ledger;
     private final StravaClient stravaClient;
+    private final OldBikeGearResolver oldBikeGearResolver;
     private final RequestThrottle throttle;
     private final LongConsumer sleeper;
 
-    /**
-     * Personal, not a secret, but still the user's own account data — set via
-     * {@code application-local.properties} (see the .example template), not the
-     * checked-in {@code application.properties}, matching Strava credentials' handling.
-     * Blank/unset (the default) disables gear assignment entirely: {@link #gearIdFor}
-     * returns null and {@link StravaClient#updateActivity} is called without a gear_id,
-     * same as before this feature existed.
-     */
-    @Value("${endomondo.strava.old-bike-gear-id:}")
-    private String oldBikeGearId;
-
-    /** ISO {@code yyyy-MM-dd}; a Ride workout on or before this date gets {@link #oldBikeGearId}. */
-    @Value("${endomondo.strava.old-bike-cutoff-date:}")
-    private String oldBikeCutoffDate;
-
     @Autowired
     public MigrationExecutor(MigrationPlanner planner, WorkoutResolver resolver, MigrationLedger ledger,
-                              StravaClient stravaClient) {
-        this(planner, resolver, ledger, stravaClient, new RequestThrottle(1000), MigrationExecutor::realSleep);
+                              StravaClient stravaClient, OldBikeGearResolver oldBikeGearResolver) {
+        this(planner, resolver, ledger, stravaClient, oldBikeGearResolver, new RequestThrottle(1000),
+                MigrationExecutor::realSleep);
     }
 
     MigrationExecutor(MigrationPlanner planner, WorkoutResolver resolver, MigrationLedger ledger,
-                       StravaClient stravaClient, RequestThrottle throttle, LongConsumer sleeper) {
+                       StravaClient stravaClient, OldBikeGearResolver oldBikeGearResolver, RequestThrottle throttle,
+                       LongConsumer sleeper) {
         this.planner = planner;
         this.resolver = resolver;
         this.ledger = ledger;
         this.stravaClient = stravaClient;
+        this.oldBikeGearResolver = oldBikeGearResolver;
         this.throttle = throttle;
         this.sleeper = sleeper;
-    }
-
-    /** {@code @Value} fields aren't populated outside a Spring context; tests set them directly. */
-    void setOldBikeGearId(String oldBikeGearId) {
-        this.oldBikeGearId = oldBikeGearId;
-    }
-
-    void setOldBikeCutoffDate(String oldBikeCutoffDate) {
-        this.oldBikeCutoffDate = oldBikeCutoffDate;
     }
 
     private static void realSleep(long millis) {
@@ -214,7 +191,7 @@ public class MigrationExecutor {
         try {
             throttle.await();
             stravaClient.updateActivity(activityId, workout.name(), workout.stravaSportType(), workout.description(),
-                    gearIdFor(workout));
+                    oldBikeGearResolver.gearIdFor(workout.stravaSportType(), workout.startTime()));
         } catch (StravaApiException e) {
             metadataWarning = workout.basename() + ": activity " + activityId
                     + " but the metadata correction call failed: " + e.getMessage();
@@ -254,34 +231,6 @@ public class MigrationExecutor {
                 workout.distanceKm() == null ? null : workout.distanceKm() * 1000.0,
                 workout.description());
         return activity.id();
-    }
-
-    /**
-     * Strava auto-assigns whatever gear is currently marked default on the account to
-     * every new activity, which is wrong for a Ride recorded before the rider owned
-     * that gear (design.md backlog, added after the user's first real migrated
-     * activity). Returns the configured old bike's gear id for a Ride on or before the
-     * configured cutoff date; null otherwise (unconfigured, wrong sport, or too
-     * recent), which {@link StravaClient#updateActivity} treats as "don't touch gear".
-     */
-    private String gearIdFor(ResolvedWorkout workout) {
-        if (oldBikeGearId == null || oldBikeGearId.isBlank()
-                || oldBikeCutoffDate == null || oldBikeCutoffDate.isBlank()) {
-            return null;
-        }
-        if (!OLD_BIKE_SPORT_TYPE.equals(workout.stravaSportType())) {
-            return null;
-        }
-        String workoutDate = dateOnly(workout.startTime());
-        if (workoutDate == null) {
-            return null;
-        }
-        return workoutDate.compareTo(oldBikeCutoffDate) <= 0 ? oldBikeGearId : null;
-    }
-
-    /** Endomondo's start_time looks like "2015-04-11 11:37:00.0"; the date is a fixed prefix. */
-    private static String dateOnly(String startTime) {
-        return (startTime == null || startTime.length() < 10) ? null : startTime.substring(0, 10);
     }
 
     private static Instant toStartInstant(ResolvedWorkout workout) {

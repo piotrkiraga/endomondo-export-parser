@@ -42,6 +42,7 @@ public class MigrationExecutorTest {
 
     private MockRestServiceServer server;
     private StravaTokenStore tokenStore;
+    private OldBikeGearResolver oldBikeGearResolver;
 
     private MigrationExecutor executorFor(Path dir) {
         RestClient.Builder builder = RestClient.builder();
@@ -54,8 +55,10 @@ public class MigrationExecutorTest {
         MigrationPlanner planner = new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser());
         WorkoutResolver resolver = new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), NO_PLACES);
         MigrationLedger ledger = new MigrationLedger(dir.resolve("ledger.json"), FIXED_NOON);
+        oldBikeGearResolver = new OldBikeGearResolver();
 
-        return new MigrationExecutor(planner, resolver, ledger, stravaClient, new RequestThrottle(0), millis -> { });
+        return new MigrationExecutor(planner, resolver, ledger, stravaClient, oldBikeGearResolver,
+                new RequestThrottle(0), millis -> { });
     }
 
     private MigrationLedger ledgerFor(Path dir) {
@@ -188,8 +191,8 @@ public class MigrationExecutorTest {
     void gearIsAssignedToARideOnOrBeforeTheConfiguredCutoff(@TempDir Path dir) throws Exception {
         Path archiveRoot = archiveWithTrackedWorkout(dir);
         MigrationExecutor executor = executorFor(dir);
-        executor.setOldBikeGearId("b18387038");
-        executor.setOldBikeCutoffDate("2021-01-31");
+        oldBikeGearResolver.setOldBikeGearId("b18387038");
+        oldBikeGearResolver.setOldBikeCutoffDate("2021-01-31");
 
         server.expect(requestTo("https://www.strava.com/api/v3/uploads"))
                 .andRespond(withSuccess("{\"id\": 555, \"activity_id\": 777}", APPLICATION_JSON));
@@ -206,8 +209,8 @@ public class MigrationExecutorTest {
     void gearIsNotAssignedToARideAfterTheConfiguredCutoff(@TempDir Path dir) throws Exception {
         Path archiveRoot = archiveWithTrackedWorkout(dir);
         MigrationExecutor executor = executorFor(dir);
-        executor.setOldBikeGearId("b18387038");
-        executor.setOldBikeCutoffDate("2011-09-09"); // the day before the workout
+        oldBikeGearResolver.setOldBikeGearId("b18387038");
+        oldBikeGearResolver.setOldBikeCutoffDate("2011-09-09"); // the day before the workout
 
         server.expect(requestTo("https://www.strava.com/api/v3/uploads"))
                 .andRespond(withSuccess("{\"id\": 555, \"activity_id\": 777}", APPLICATION_JSON));
@@ -245,8 +248,8 @@ public class MigrationExecutorTest {
     void gearIsNotAssignedToANonRideSportEvenBeforeTheCutoff(@TempDir Path dir) throws Exception {
         Path archiveRoot = archiveWithManualWorkout(dir); // MANUAL_BASENAME is a Walk, recorded 2014-09-16
         MigrationExecutor executor = executorFor(dir);
-        executor.setOldBikeGearId("b18387038");
-        executor.setOldBikeCutoffDate("2099-01-01"); // deliberately always in the future
+        oldBikeGearResolver.setOldBikeGearId("b18387038");
+        oldBikeGearResolver.setOldBikeCutoffDate("2099-01-01"); // deliberately always in the future
 
         server.expect(requestTo("https://www.strava.com/api/v3/activities"))
                 .andRespond(withSuccess("{\"id\": 888}", APPLICATION_JSON));
