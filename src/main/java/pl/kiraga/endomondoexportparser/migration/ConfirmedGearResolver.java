@@ -16,9 +16,11 @@ import java.util.Optional;
 public class ConfirmedGearResolver {
 
     private final StravaClient stravaClient;
+    private final StravaDictionary stravaDictionary;
 
-    public ConfirmedGearResolver(StravaClient stravaClient) {
+    public ConfirmedGearResolver(StravaClient stravaClient, StravaDictionary stravaDictionary) {
         this.stravaClient = stravaClient;
+        this.stravaDictionary = stravaDictionary;
     }
 
     /**
@@ -36,8 +38,19 @@ public class ConfirmedGearResolver {
         }
     }
 
-    /** "{name} ({id})", falling back to the bare id if the name lookup itself fails. */
+    /**
+     * "{name} ({id})", falling back to the bare id if the name can't be resolved.
+     * Checks the cached {@link StravaDictionary} first (a pure in-memory/disk read, no
+     * network call, and immune to the per-activity rate-limit exposure a live
+     * {@link StravaClient#getGear} call carries) before falling back to a live lookup
+     * for a gear id the dictionary doesn't have (e.g. never refreshed, or gear added
+     * since the last refresh).
+     */
     public String display(String gearId) {
+        Optional<String> cachedName = stravaDictionary.gearNameFor(gearId);
+        if (cachedName.isPresent()) {
+            return cachedName.get() + " (" + gearId + ")";
+        }
         try {
             StravaGear gear = stravaClient.getGear(gearId);
             return gear.name() == null || gear.name().isBlank() ? gearId : gear.name() + " (" + gearId + ")";

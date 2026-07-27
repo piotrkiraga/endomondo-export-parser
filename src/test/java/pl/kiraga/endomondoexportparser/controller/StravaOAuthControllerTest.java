@@ -28,8 +28,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {"STRAVA_CLIENT_ID=", "STRAVA_CLIENT_SECRET="})
 public class StravaOAuthControllerTest {
 
-    // Must match StravaOAuthController.STATE_COOKIE_NAME.
+    // Must match StravaOAuthController.STATE_COOKIE_NAME/RETURN_COOKIE_NAME.
     private static final String STATE_COOKIE_NAME = "strava_oauth_state";
+    private static final String RETURN_COOKIE_NAME = "strava_oauth_return";
 
     @Autowired
     private MockMvc mockMvc;
@@ -50,6 +51,19 @@ public class StravaOAuthControllerTest {
                 .andExpect(redirectedUrl("/migration/photo-report"))
                 .andExpect(flash().attribute("errorMessages", hasItem(
                         "Strava did not authorize this app: \"access_denied\"")));
+    }
+
+    @Test
+    void callbackWithNoReturnCookieRedirectsToTheDefaultPage() throws Exception {
+        mockMvc.perform(get("/strava/callback").param("error", "access_denied").with(user("piotr")))
+                .andExpect(redirectedUrl("/migration/photo-report"));
+    }
+
+    @Test
+    void callbackWithAReturnCookieRedirectsBackToWhereTheUserStarted() throws Exception {
+        mockMvc.perform(get("/strava/callback").param("error", "access_denied")
+                        .cookie(new Cookie(RETURN_COOKIE_NAME, "/migration/strava-dictionary")).with(user("piotr")))
+                .andExpect(redirectedUrl("/migration/strava-dictionary"));
     }
 
     @Test

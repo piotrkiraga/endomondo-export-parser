@@ -49,6 +49,12 @@ public class WorkoutReportGeneratorTest {
         return new StravaTokenStore(sharedTemp.resolve("never-written-tokens.json"));
     }
 
+    /** Empty and never written to: every {@code gearNameFor} lookup is a cache miss. */
+    private StravaDictionary emptyDictionary(StravaClient stravaClient) {
+        return new StravaDictionary(stravaClient, new StravaDictionaryCache(sharedTemp.resolve("never-written-dictionary.json")),
+                FIXED_NOON);
+    }
+
     private WorkoutReportGenerator generatorWith(PlaceLookup placeLookup) {
         StravaTokenStore tokenStore = notConnectedTokenStore();
         StravaClient stravaClient = new StravaClient(RestClient.builder(), tokenStore, "client-id", "client-secret",
@@ -56,7 +62,8 @@ public class WorkoutReportGeneratorTest {
         return new WorkoutReportGenerator(
                 new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
                 new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), placeLookup),
-                new OldBikeGearResolver(), new ConfirmedGearResolver(stravaClient), tokenStore, new RequestThrottle(0));
+                new OldBikeGearResolver(), new ConfirmedGearResolver(stravaClient, emptyDictionary(stravaClient)),
+                tokenStore, new RequestThrottle(0));
     }
 
     private WorkoutReportGenerator generatorWithOldBikeGear(String gearId, String cutoffDate) {
@@ -69,7 +76,8 @@ public class WorkoutReportGeneratorTest {
         return new WorkoutReportGenerator(
                 new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
                 new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), NO_PLACES),
-                oldBikeGearResolver, new ConfirmedGearResolver(stravaClient), tokenStore, new RequestThrottle(0));
+                oldBikeGearResolver, new ConfirmedGearResolver(stravaClient, emptyDictionary(stravaClient)),
+                tokenStore, new RequestThrottle(0));
     }
 
     /** A generator connected to Strava via a mocked network, for the confirmed-gear tests. */
@@ -87,10 +95,13 @@ public class WorkoutReportGeneratorTest {
         tokenStore.save(new StravaTokens("t", "refresh-1", FIXED_NOON.instant().plusSeconds(3600).getEpochSecond()));
         StravaClient stravaClient = new StravaClient(builder, tokenStore, "client-id", "client-secret", FIXED_NOON,
                 millis -> { });
+        StravaDictionary stravaDictionary = new StravaDictionary(stravaClient,
+                new StravaDictionaryCache(tempDir.resolve("dictionary.json")), FIXED_NOON);
         WorkoutReportGenerator generator = new WorkoutReportGenerator(
                 new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
                 new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), NO_PLACES),
-                oldBikeGearResolver, new ConfirmedGearResolver(stravaClient), tokenStore, new RequestThrottle(0));
+                oldBikeGearResolver, new ConfirmedGearResolver(stravaClient, stravaDictionary), tokenStore,
+                new RequestThrottle(0));
         return new ConnectedRig(generator, server);
     }
 

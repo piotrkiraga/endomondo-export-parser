@@ -42,9 +42,14 @@ sends it — so migrating means clicking through your history, not trusting a bu
   twice.
 - **Hosts its own Strava connection.** An OAuth authorization-code flow lets it call
   Strava's API on your behalf, scoped to `activity:write` (create/update migrated
-  activities) and `activity:read_all` (confirm what Strava actually has on file for an
+  activities), `activity:read_all` (confirm what Strava actually has on file for an
   already-migrated activity, e.g. its gear — needed because Strava's write-side gear
-  correction doesn't reliably apply, see "A note on the data" below).
+  correction doesn't reliably apply, see "A note on the data" below), and
+  `profile:read_all` (your profile and gear names, for the Strava data page below).
+- **Caches Strava's own rarely-changing data.** A "Strava data" page fetches your profile
+  and every bike/shoe's name in one call, refreshed only when you click the button — every
+  gear name shown elsewhere in the app reads from this cache first, instead of one live
+  lookup per gear id. The home page greets you by name once it's been refreshed.
 - **Migrates one workout at a time, by hand.** A review screen shows each workout's real
   name, sport, description, and photo thumbnails (geotagged copies, each with a
   click-to-copy local path, ready to attach manually — the one thing the API can't do),

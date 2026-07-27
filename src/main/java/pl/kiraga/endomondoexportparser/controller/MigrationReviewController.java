@@ -7,10 +7,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.ModelAndView;
 import pl.kiraga.endomondoexportparser.migration.ConfirmedGearResolver;
+import pl.kiraga.endomondoexportparser.migration.DisplayTime;
 import pl.kiraga.endomondoexportparser.migration.LedgerEntry;
 import pl.kiraga.endomondoexportparser.migration.LedgerStatus;
 import pl.kiraga.endomondoexportparser.migration.MigrationExecutor;
 import pl.kiraga.endomondoexportparser.migration.MigrationLedger;
+import pl.kiraga.endomondoexportparser.migration.OldBikeGearResolver;
 import pl.kiraga.endomondoexportparser.migration.PlannedAction;
 import pl.kiraga.endomondoexportparser.migration.ResolvedWorkout;
 import pl.kiraga.endomondoexportparser.migration.StravaTokenStore;
@@ -41,6 +43,7 @@ public class MigrationReviewController extends BaseController {
     private final WorkoutPhotoResolver photoResolver;
     private final StravaTokenStore stravaTokenStore;
     private final ConfirmedGearResolver confirmedGearResolver;
+    private final OldBikeGearResolver oldBikeGearResolver;
 
     @Value("${endomondo.archive.root}")
     private String archiveRootProperty;
@@ -50,12 +53,13 @@ public class MigrationReviewController extends BaseController {
 
     public MigrationReviewController(MigrationExecutor executor, MigrationLedger ledger,
                                       WorkoutPhotoResolver photoResolver, StravaTokenStore stravaTokenStore,
-                                      ConfirmedGearResolver confirmedGearResolver) {
+                                      ConfirmedGearResolver confirmedGearResolver, OldBikeGearResolver oldBikeGearResolver) {
         this.executor = executor;
         this.ledger = ledger;
         this.photoResolver = photoResolver;
         this.stravaTokenStore = stravaTokenStore;
         this.confirmedGearResolver = confirmedGearResolver;
+        this.oldBikeGearResolver = oldBikeGearResolver;
     }
 
     /** {@code @Value} fields aren't populated outside a Spring context; tests set them directly. */
@@ -245,6 +249,7 @@ public class MigrationReviewController extends BaseController {
 
         Optional<LedgerEntry> entry = ledger.find(workout.basename());
         modelAndView.addObject("ledgerEntry", entry.orElse(null));
+        modelAndView.addObject("formattedMigratedOn", entry.map(e -> DisplayTime.of(e.updatedAt())).orElse(null));
         boolean isDone = entry.map(e -> e.status() == LedgerStatus.DONE).orElse(false);
         modelAndView.addObject("isDone", isDone);
         modelAndView.addObject("isFailed", entry.map(e -> e.status() == LedgerStatus.FAILED).orElse(false));
@@ -256,6 +261,15 @@ public class MigrationReviewController extends BaseController {
             modelAndView.addObject("gearLookupFailed", confirmedGearId.isEmpty());
             confirmedGearId.filter(id -> !id.isBlank())
                     .ifPresent(id -> modelAndView.addObject("currentGearDisplay", confirmedGearResolver.display(id)));
+        } else if (!isDone) {
+            // Not migrated yet, so nothing is confirmed — show what the app would send
+            // instead, same computation and "{name} ({id})" formatting as the offline
+            // workout report, so the two can never show something different.
+            String plannedGearId = oldBikeGearResolver.gearIdFor(workout.stravaSportType(), workout.startTime());
+            modelAndView.addObject("plannedGearId", plannedGearId);
+            if (plannedGearId != null && stravaTokenStore.load().isPresent()) {
+                modelAndView.addObject("plannedGearDisplay", confirmedGearResolver.display(plannedGearId));
+            }
         }
 
         Path photoReportRoot = Path.of(photoReportOutputDirectory).toAbsolutePath().normalize();

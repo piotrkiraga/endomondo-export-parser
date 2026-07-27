@@ -253,6 +253,19 @@ public class StravaClient {
                 .body(StravaGear.class));
     }
 
+    /**
+     * The connected athlete's profile, including every bike and shoe with its name —
+     * the one call {@link StravaDictionary#refresh} uses to populate the whole gear
+     * dictionary at once, rather than one {@link #getGear} call per gear id.
+     */
+    public StravaAthlete getAthlete() {
+        return withRetryOn429(() -> restClient.get()
+                .uri("/api/v3/athlete")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken())
+                .retrieve()
+                .body(StravaAthlete.class));
+    }
+
     // --- Rate limiting ---
 
     /**

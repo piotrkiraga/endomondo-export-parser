@@ -303,6 +303,34 @@ public class StravaClientTest {
         assertEquals("Trek Checkpoint", gear.name());
     }
 
+    @Test
+    void getAthleteReadsBackProfileAndEveryBikeAndShoe(@TempDir Path dir) {
+        StravaClient client = newClient(dir);
+        storeToken("t", Instant.parse("2026-07-20T13:00:00Z"));
+
+        server.expect(requestTo("https://www.strava.com/api/v3/athlete"))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                        {"id": 555, "firstname": "Piotr", "lastname": "Kiraga", "profile": "https://example.com/p.jpg",
+                         "city": "Kraków", "state": null, "country": "Poland",
+                         "bikes": [{"id": "b18387038", "name": "Decathlon Riverside 5 Man"}],
+                         "shoes": [{"id": "g1", "name": "Trail Shoes"}]}
+                        """, APPLICATION_JSON));
+
+        StravaAthlete athlete = client.getAthlete();
+
+        assertEquals(555L, athlete.id());
+        assertEquals("Piotr", athlete.firstname());
+        assertEquals("Kiraga", athlete.lastname());
+        assertEquals("https://example.com/p.jpg", athlete.profilePictureUrl());
+        assertEquals("Kraków", athlete.city());
+        assertEquals("Poland", athlete.country());
+        assertEquals(1, athlete.bikes().size());
+        assertEquals("Decathlon Riverside 5 Man", athlete.bikes().get(0).name());
+        assertEquals(1, athlete.shoes().size());
+        assertEquals("Trail Shoes", athlete.shoes().get(0).name());
+    }
+
     // --- Rate limiting ---
 
     @Test

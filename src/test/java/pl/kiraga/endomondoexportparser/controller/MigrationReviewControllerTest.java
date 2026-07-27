@@ -41,13 +41,15 @@ public class MigrationReviewControllerTest {
     private static final String MANUAL_BASENAME = "2014-09-16 09_05_21.0";
 
     private MockRestServiceServer server;
+    private MigrationTestSupport.Rig rig;
 
     private MigrationReviewController controllerFor(Path dir) {
-        MigrationTestSupport.Rig rig = MigrationTestSupport.build(dir, FIXED);
+        rig = MigrationTestSupport.build(dir, FIXED);
         server = rig.server();
 
         MigrationReviewController controller = new MigrationReviewController(
-                rig.executor(), rig.ledger(), rig.photoResolver(), rig.tokenStore(), rig.confirmedGearResolver());
+                rig.executor(), rig.ledger(), rig.photoResolver(), rig.tokenStore(), rig.confirmedGearResolver(),
+                rig.oldBikeGearResolver());
         controller.setArchiveRootProperty(dir.resolve("archive").toString());
         controller.setPhotoReportOutputDirectory(dir.resolve("photo-report").toString());
         return controller;
@@ -174,6 +176,26 @@ public class MigrationReviewControllerTest {
         LedgerEntry entry = (LedgerEntry) mav.getModel().get("ledgerEntry");
         assertEquals(777L, entry.activityId());
         assertEquals("Trek Checkpoint (b18387038)", mav.getModel().get("currentGearDisplay"));
+        assertEquals("2026-07-21 14:00:00", mav.getModel().get("formattedMigratedOn"), "displayed in Europe/Warsaw, not raw UTC");
+    }
+
+    @Test
+    void viewShowsPlannedGearForANotYetMigratedRide(@TempDir Path dir) throws Exception {
+        archiveWithTwoActionableWorkouts(dir);
+        MigrationReviewController controller = controllerFor(dir);
+        MigrationTestSupport.configureOldBike(rig.oldBikeGearResolver(), "b18387038", "2021-01-31");
+
+        // No /activities call: TRACKED_BASENAME isn't migrated, so there's nothing to
+        // confirm — only the planned gear's own name is looked up.
+        server.expect(requestTo("https://www.strava.com/api/v3/gear/b18387038"))
+                .andRespond(withSuccess("{\"id\": \"b18387038\", \"name\": \"Trek Checkpoint\"}", APPLICATION_JSON));
+
+        ModelAndView mav = controller.view(new ModelAndView(), 0);
+
+        assertEquals(Boolean.FALSE, mav.getModel().get("isDone"));
+        assertEquals("b18387038", mav.getModel().get("plannedGearId"));
+        assertEquals("Trek Checkpoint (b18387038)", mav.getModel().get("plannedGearDisplay"));
+        server.verify();
     }
 
     // --- Migrate: always allowed, even when already decided ---

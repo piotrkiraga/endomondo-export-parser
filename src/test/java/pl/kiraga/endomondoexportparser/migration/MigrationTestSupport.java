@@ -24,17 +24,25 @@ public final class MigrationTestSupport {
 
     public record Rig(MockRestServiceServer server, MigrationExecutor executor, MigrationLedger ledger,
                        WorkoutPhotoResolver photoResolver, StravaTokenStore tokenStore, StravaClient stravaClient,
-                       ConfirmedGearResolver confirmedGearResolver) {
+                       ConfirmedGearResolver confirmedGearResolver, StravaDictionary stravaDictionary,
+                       OldBikeGearResolver oldBikeGearResolver) {
+    }
+
+    /** As {@link #build(Path, Clock, boolean)}, connected (a token is already saved). */
+    public static Rig build(Path dir, Clock clock) {
+        return build(dir, clock, true);
     }
 
     /** {@code dir} is a @TempDir; tokens/ledger files are written under it, never under the real data/. */
-    public static Rig build(Path dir, Clock clock) {
+    public static Rig build(Path dir, Clock clock, boolean connected) {
 
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
 
         StravaTokenStore tokenStore = new StravaTokenStore(dir.resolve("tokens.json"));
-        tokenStore.save(new StravaTokens("t", "refresh-1", clock.instant().plusSeconds(3600).getEpochSecond()));
+        if (connected) {
+            tokenStore.save(new StravaTokens("t", "refresh-1", clock.instant().plusSeconds(3600).getEpochSecond()));
+        }
         StravaClient stravaClient = new StravaClient(builder, tokenStore, "client-id", "client-secret", clock, millis -> { });
 
         MigrationPlanner planner = new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser());
@@ -45,10 +53,19 @@ public final class MigrationTestSupport {
         MigrationExecutor executor = new MigrationExecutor(planner, resolver, ledger, stravaClient, oldBikeGearResolver,
                 new RequestThrottle(0), millis -> { });
         WorkoutPhotoResolver photoResolver = new WorkoutPhotoResolver(new EndomondoJsonParser(), new PhotoGeotagger());
-        ConfirmedGearResolver confirmedGearResolver = new ConfirmedGearResolver(stravaClient);
+        StravaDictionary stravaDictionary = new StravaDictionary(stravaClient,
+                new StravaDictionaryCache(dir.resolve("dictionary.json")), clock);
+        ConfirmedGearResolver confirmedGearResolver = new ConfirmedGearResolver(stravaClient, stravaDictionary);
 
-        return new Rig(server, executor, ledger, photoResolver, tokenStore, stravaClient, confirmedGearResolver);
+        return new Rig(server, executor, ledger, photoResolver, tokenStore, stravaClient, confirmedGearResolver,
+                stravaDictionary, oldBikeGearResolver);
 
+    }
+
+    /** {@link OldBikeGearResolver}'s setters are package-private; this is the cross-package seam for them. */
+    public static void configureOldBike(OldBikeGearResolver resolver, String gearId, String cutoffDate) {
+        resolver.setOldBikeGearId(gearId);
+        resolver.setOldBikeCutoffDate(cutoffDate);
     }
 
 }

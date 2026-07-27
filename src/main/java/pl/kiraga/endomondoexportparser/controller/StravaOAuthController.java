@@ -40,7 +40,8 @@ import java.util.UUID;
 public class StravaOAuthController extends BaseController {
 
     private static final String STATE_COOKIE_NAME = "strava_oauth_state";
-    private static final String REDIRECT_TO_STATUS = "redirect:/migration/photo-report";
+    private static final String RETURN_COOKIE_NAME = "strava_oauth_return";
+    private static final String DEFAULT_RETURN_PATH = "/migration/photo-report";
 
     private final StravaClient stravaClient;
 
@@ -55,23 +56,27 @@ public class StravaOAuthController extends BaseController {
     }
 
     @RequestMapping(value = "/connect", method = RequestMethod.GET)
-    public String connect(HttpServletResponse response, RedirectAttributes redirectAttributes) {
+    public String connect(@RequestParam(name = "return", required = false) String returnTo,
+                           HttpServletResponse response, RedirectAttributes redirectAttributes) {
 
         if (clientId == null || clientId.isBlank()) {
             redirectAttributes.addFlashAttribute("errorMessages",
                     List.of(message("errorMessage.strava.clientIdMissing")));
-            return REDIRECT_TO_STATUS;
+            return "redirect:" + DEFAULT_RETURN_PATH;
         }
 
         String state = UUID.randomUUID().toString();
-        response.addHeader(HttpHeaders.SET_COOKIE, stateCookie(state, Duration.ofMinutes(10)).toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, stateCookie(STATE_COOKIE_NAME, state, Duration.ofMinutes(10)).toString());
+        if (isSafeInternalPath(returnTo)) {
+            response.addHeader(HttpHeaders.SET_COOKIE, stateCookie(RETURN_COOKIE_NAME, returnTo, Duration.ofMinutes(10)).toString());
+        }
 
         String authorizeUrl = UriComponentsBuilder.fromUriString("https://www.strava.com/oauth/authorize")
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("response_type", "code")
                 .queryParam("approval_prompt", "auto")
-                .queryParam("scope", "activity:write,activity:read_all")
+                .queryParam("scope", "activity:write,activity:read_all,profile:read_all")
                 .queryParam("state", state)
                 .build()
                 .toUriString();
@@ -86,14 +91,16 @@ public class StravaOAuthController extends BaseController {
             @RequestParam(name = "state", required = false) String state,
             @RequestParam(name = "error", required = false) String error,
             @CookieValue(name = STATE_COOKIE_NAME, required = false) String expectedState,
+            @CookieValue(name = RETURN_COOKIE_NAME, required = false) String returnTo,
             HttpServletResponse response,
             RedirectAttributes redirectAttributes) {
 
         List<String> errorMessages = new ArrayList<>();
         List<String> infoMessages = new ArrayList<>();
 
-        // Consumed on first use regardless of outcome, same as the session attribute this replaced.
-        response.addHeader(HttpHeaders.SET_COOKIE, stateCookie("", Duration.ZERO).toString());
+        // Both consumed on first use regardless of outcome, same as the session attribute this replaced.
+        response.addHeader(HttpHeaders.SET_COOKIE, stateCookie(STATE_COOKIE_NAME, "", Duration.ZERO).toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, stateCookie(RETURN_COOKIE_NAME, "", Duration.ZERO).toString());
 
         if (error != null) {
             errorMessages.add(message("errorMessage.strava.authorizationDenied", error));
@@ -114,8 +121,19 @@ public class StravaOAuthController extends BaseController {
         redirectAttributes.addFlashAttribute("errorMessages", errorMessages);
         redirectAttributes.addFlashAttribute("infoMessages", infoMessages);
 
-        return REDIRECT_TO_STATUS;
+        return "redirect:" + (isSafeInternalPath(returnTo) ? returnTo : DEFAULT_RETURN_PATH);
 
+    }
+
+    /**
+     * {@code returnTo} round-trips through a cookie set by our own {@link #connect} on
+     * our own domain — not through Strava — so this is a sanity check against a
+     * malformed/tampered cookie, not a defense against Strava itself. Requiring a
+     * same-app-relative path (starts with {@code /}, not protocol-relative {@code //})
+     * is enough to rule out redirecting off this app.
+     */
+    private static boolean isSafeInternalPath(String path) {
+        return path != null && path.startsWith("/") && !path.startsWith("//");
     }
 
     /**
@@ -123,8 +141,8 @@ public class StravaOAuthController extends BaseController {
      * {@code http://localhost} URL, and a Secure cookie would silently never be sent back
      * to it.
      */
-    private static ResponseCookie stateCookie(String value, Duration maxAge) {
-        return ResponseCookie.from(STATE_COOKIE_NAME, value)
+    private static ResponseCookie stateCookie(String name, String value, Duration maxAge) {
+        return ResponseCookie.from(name, value)
                 .httpOnly(true)
                 .sameSite("Lax")
                 .path("/strava")

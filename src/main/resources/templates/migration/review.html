@@ -36,7 +36,7 @@
                                 <span th:if="${isFailed}" class="badge text-bg-danger" th:text="#{migration.review.failedFlag}">Failed</span>
                                 <span th:if="${isSkipped}" class="badge text-bg-secondary" th:text="#{migration.review.skippedFlag}">Skipped</span>
                                 <span th:if="${isDone}" class="text-body-secondary small ms-2"
-                                      th:text="#{migration.review.migratedOn(${ledgerEntry.updatedAt})}">Migrated on ...</span>
+                                      th:text="#{migration.review.migratedOn(${formattedMigratedOn})}">Migrated on ...</span>
                                 <span th:if="${isDone}" class="text-body-secondary small ms-2">
                                     (<a th:href="'https://www.strava.com/activities/' + ${ledgerEntry.activityId}" target="_blank" rel="noopener"
                                         th:text="#{migration.review.viewOnStrava}">view on Strava</a>)
@@ -68,6 +68,11 @@
                                 <div class="detail-row" th:if="${isDone and not gearLookupFailed}">
                                     <span class="detail-label" th:text="#{migration.review.gearOnStrava}">Gear on Strava</span>
                                     <span class="detail-value" th:text="${currentGearDisplay != null} ? ${currentGearDisplay} : #{migration.review.gearNone}">gear name (id)</span>
+                                </div>
+                                <div class="detail-row" th:if="${not isDone and plannedGearId != null}">
+                                    <span class="detail-label" th:text="#{migration.review.plannedGear}">Planned gear</span>
+                                    <span class="detail-value"
+                                          th:text="${plannedGearDisplay != null} ? ${plannedGearDisplay} : ${plannedGearId}">gear name (id)</span>
                                 </div>
                             </div>
 
