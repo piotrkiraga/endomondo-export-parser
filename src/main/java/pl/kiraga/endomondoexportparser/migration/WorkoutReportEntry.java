@@ -17,11 +17,25 @@ public record WorkoutReportEntry(
         Integer durationS,
         int pictureCount,
         Long activityId,
-        String gearId,
+        String plannedGearId,
+        String plannedGearDisplay,
+        String confirmedGearDisplay,
         String sourceFiles) {
 
-    /** {@code activityId} is null for a workout not yet migrated (or the planner skipped it). */
-    static WorkoutReportEntry from(ResolvedWorkout workout, Long activityId, OldBikeGearResolver oldBikeGearResolver) {
+    /**
+     * {@code activityId} is null for a workout not yet migrated (or the planner skipped
+     * it). {@code confirmedGearDisplay} is a tri-state (see {@link WorkoutReportGenerator}):
+     * null means not migrated, not connected, or the live Strava read failed — fall back
+     * to {@code plannedGearDisplay}/{@code plannedGearId}; an empty string means the read
+     * succeeded and Strava confirmed no gear at all — real information, not a fallback
+     * case; any other value is "{name} ({id})". {@code plannedGearDisplay} is the same
+     * "{name} ({id})" formatting for the offline-computed {@code plannedGearId}, resolved
+     * once per report build (not per workout, since it's always the same configured old
+     * bike) when connected — null when not connected or the one-time name lookup fails,
+     * in which case {@code plannedGearId}'s bare id is all there is.
+     */
+    static WorkoutReportEntry from(ResolvedWorkout workout, Long activityId, OldBikeGearResolver oldBikeGearResolver,
+                                    String plannedGearDisplay, String confirmedGearDisplay) {
         return new WorkoutReportEntry(
                 workout.basename(),
                 workout.action(),
@@ -35,6 +49,8 @@ public record WorkoutReportEntry(
                 workout.pictureCount(),
                 activityId,
                 oldBikeGearResolver.gearIdFor(workout.stravaSportType(), workout.startTime()),
+                plannedGearDisplay,
+                confirmedGearDisplay,
                 workout.sourceFiles());
     }
 

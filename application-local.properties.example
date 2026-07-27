@@ -16,9 +16,11 @@ STRAVA_CLIENT_SECRET=
 # wrong for a Ride recorded before you owned that gear. Leave both blank to disable —
 # every Ride keeps Strava's own default-gear assignment, as if this didn't exist.
 #
-# endomondo.strava.old-bike-gear-id is your OLD bike's Strava gear id: the bare numeric
-# id from Strava's bike URL (e.g. strava.com/bikes/18387038 -> 18387038). Create the bike
-# itself on Strava's own site first (Settings -> My Gear -> Add Bike); gear creation isn't
+# endomondo.strava.old-bike-gear-id is your OLD bike's Strava gear id, including its
+# letter prefix (e.g. "b18387038" for a bike, not the bare number) — the surest way to
+# get this right is to migrate one Ride first with this left blank, then read the exact
+# id off the migration review page's "Gear on Strava" row. Create the bike itself on
+# Strava's own site first (Settings -> My Gear -> Add Bike); gear creation isn't
 # available through the API at all, only reading. Strava's write API doesn't reliably
 # apply this correction (see README's "A note on the data") — check the migration review
 # page's "Gear on Strava" row after migrating to confirm whether it actually took.

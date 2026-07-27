@@ -47,7 +47,7 @@ public class MigrationReviewControllerTest {
         server = rig.server();
 
         MigrationReviewController controller = new MigrationReviewController(
-                rig.executor(), rig.ledger(), rig.photoResolver(), rig.tokenStore(), rig.stravaClient());
+                rig.executor(), rig.ledger(), rig.photoResolver(), rig.tokenStore(), rig.confirmedGearResolver());
         controller.setArchiveRootProperty(dir.resolve("archive").toString());
         controller.setPhotoReportOutputDirectory(dir.resolve("photo-report").toString());
         return controller;

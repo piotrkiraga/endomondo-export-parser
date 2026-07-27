@@ -30,10 +30,12 @@ sends it — so migrating means clicking through your history, not trusting a bu
   entry links straight to the activity on Strava.
 - **Previews the migration before anything uploads.** A generated report shows, per
   workout, exactly what would be sent to Strava — resolved name, sport, description,
-  dates, distance, duration, and whether it uploads as a track or gets created manually —
-  built entirely offline from the same planning logic the real migration will use, styled
-  and dark-mode-aware the same way the photo report is, with the same live Strava link
-  once migrated.
+  dates, distance, duration, gear, and whether it uploads as a track or gets created
+  manually — built from the same planning logic the real migration will use, styled and
+  dark-mode-aware the same way the photo report is, with the same live Strava link once
+  migrated. Planning itself stays offline; the one exception is gear on an already-migrated
+  workout, which is read back and confirmed from Strava directly while connected, rather
+  than just showing what was planned.
 - **Names the unnamed.** A workout with no title becomes something like "Evening Ride
   along Vistula in Kraków": time of day, sport, and a reverse-geocoded nearby landmark,
   resolved via OpenStreetMap and cached so the same real-world place is never looked up

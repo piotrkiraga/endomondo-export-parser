@@ -57,6 +57,14 @@ public class OldBikeGearResolver {
         return workoutDate.compareTo(oldBikeCutoffDate) <= 0 ? oldBikeGearId : null;
     }
 
+    /**
+     * The raw configured gear id regardless of sport/date, or null if unconfigured —
+     * for resolving its display name once rather than re-deriving it per workout.
+     */
+    public String configuredGearId() {
+        return oldBikeGearId == null || oldBikeGearId.isBlank() ? null : oldBikeGearId;
+    }
+
     /** Endomondo's start_time looks like "2015-04-11 11:37:00.0"; the date is a fixed prefix. */
     private static String dateOnly(String startTime) {
         return (startTime == null || startTime.length() < 10) ? null : startTime.substring(0, 10);

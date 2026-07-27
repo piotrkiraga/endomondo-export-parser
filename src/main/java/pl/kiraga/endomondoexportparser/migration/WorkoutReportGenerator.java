@@ -1,5 +1,6 @@
 package pl.kiraga.endomondoexportparser.migration;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -8,9 +9,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Builds the workout migration preview: for every workout in the archive, exactly what
@@ -18,8 +21,11 @@ import java.util.Map;
  * real name/sport/description a migration would send to Strava, resolved by
  * {@link WorkoutResolver} (the same resolution {@link MigrationExecutor} uses for the
  * real thing, so what this report shows and what actually gets sent can never diverge).
- * No Strava collaborator here: like the planner, producing this report cannot reach
- * the network.
+ * Planning itself never reaches the network — but for a workout already migrated and
+ * while connected to Strava, {@link #build(Path, Map)} does read its confirmed gear back
+ * (see {@link ConfirmedGearResolver}), throttled like a real migration run, since the
+ * write-side gear correction is known unreliable and a bare "planned" id would otherwise
+ * be presented as fact for workouts where the real answer is one Strava call away.
  */
 @Service
 public class WorkoutReportGenerator {
@@ -29,12 +35,26 @@ public class WorkoutReportGenerator {
     private final MigrationPlanner planner;
     private final WorkoutResolver resolver;
     private final OldBikeGearResolver oldBikeGearResolver;
+    private final ConfirmedGearResolver confirmedGearResolver;
+    private final StravaTokenStore stravaTokenStore;
+    private final RequestThrottle throttle;
 
+    @Autowired
     public WorkoutReportGenerator(MigrationPlanner planner, WorkoutResolver resolver,
-                                   OldBikeGearResolver oldBikeGearResolver) {
+                                   OldBikeGearResolver oldBikeGearResolver, ConfirmedGearResolver confirmedGearResolver,
+                                   StravaTokenStore stravaTokenStore) {
+        this(planner, resolver, oldBikeGearResolver, confirmedGearResolver, stravaTokenStore, new RequestThrottle(1000));
+    }
+
+    WorkoutReportGenerator(MigrationPlanner planner, WorkoutResolver resolver, OldBikeGearResolver oldBikeGearResolver,
+                            ConfirmedGearResolver confirmedGearResolver, StravaTokenStore stravaTokenStore,
+                            RequestThrottle throttle) {
         this.planner = planner;
         this.resolver = resolver;
         this.oldBikeGearResolver = oldBikeGearResolver;
+        this.confirmedGearResolver = confirmedGearResolver;
+        this.stravaTokenStore = stravaTokenStore;
+        this.throttle = throttle;
     }
 
     /** Dry-run: no workout has a Strava activity id yet. */
@@ -55,13 +75,48 @@ public class WorkoutReportGenerator {
         MigrationPlan plan = planner.plan(workoutsDirectory);
         List<ResolvedWorkout> resolved = resolver.resolve(workoutsDirectory, plan);
 
+        boolean connected = stravaTokenStore.load().isPresent();
+        Map<String, String> gearNameCache = new HashMap<>();
+
+        String configuredGearId = oldBikeGearResolver.configuredGearId();
+        String plannedGearDisplay = connected && configuredGearId != null
+                ? gearNameFor(configuredGearId, gearNameCache) : null;
+
         List<WorkoutReportEntry> entries = new ArrayList<>();
         for (ResolvedWorkout workout : resolved) {
-            entries.add(WorkoutReportEntry.from(workout, activityIdsByBasename.get(workout.basename()), oldBikeGearResolver));
+            Long activityId = activityIdsByBasename.get(workout.basename());
+            String confirmedGearDisplay = connected && activityId != null
+                    ? confirmedGearDisplayFor(activityId, gearNameCache) : null;
+            entries.add(WorkoutReportEntry.from(workout, activityId, oldBikeGearResolver, plannedGearDisplay,
+                    confirmedGearDisplay));
         }
 
         return new WorkoutReport(List.copyOf(entries), plan.tracksWithoutMetadata());
 
+    }
+
+    /**
+     * Null only on an actual lookup failure (falls back to the planned id instead) — an
+     * empty string means Strava was successfully read and confirmed no gear at all,
+     * which is real information, not a reason to fall back. {@code gearNameCache} avoids
+     * repeating the name lookup for the same gear id across many entries in one build.
+     */
+    private String confirmedGearDisplayFor(long activityId, Map<String, String> gearNameCache) {
+        throttle.await();
+        Optional<String> confirmedGearId = confirmedGearResolver.gearIdFor(activityId);
+        if (confirmedGearId.isEmpty()) {
+            return null;
+        }
+        String gearId = confirmedGearId.get();
+        return gearId.isBlank() ? "" : gearNameFor(gearId, gearNameCache);
+    }
+
+    /** Cached per gear id within one build, since the configured old bike is reused across many entries. */
+    private String gearNameFor(String gearId, Map<String, String> gearNameCache) {
+        return gearNameCache.computeIfAbsent(gearId, id -> {
+            throttle.await();
+            return confirmedGearResolver.display(id);
+        });
     }
 
     /** Builds the report and writes it as a single self-contained HTML file; dry-run, no activity ids. */
@@ -135,13 +190,7 @@ public class WorkoutReportGenerator {
         if (entry.pictureCount() > 0) {
             section.append(" &mdash; ").append(entry.pictureCount()).append(" photo(s)");
         }
-        if (entry.gearId() != null) {
-            // "Planned", not "confirmed": this report is offline (no Strava reads at all,
-            // see design.md), so it can only show what the app would try to send, which
-            // Strava's write API doesn't reliably apply — see the migration review page's
-            // live "Gear on Strava" row for what actually landed.
-            section.append(" &mdash; planned gear: ").append(escape(entry.gearId()));
-        }
+        section.append(gearMeta(entry));
         section.append(" &mdash; ").append(activityLink(entry.activityId()))
                 .append(" &mdash; <span class=\"basename\">Source: ").append(escape(entry.sourceFiles())).append("</span>")
                 .append("</div>\n")
@@ -150,6 +199,24 @@ public class WorkoutReportGenerator {
 
         return section.toString();
 
+    }
+
+    /**
+     * Prefers the confirmed value (a real Strava read) over the merely planned one,
+     * since we know the write-side correction doesn't reliably land — see
+     * {@link WorkoutReportEntry#confirmedGearDisplay}'s tri-state.
+     */
+    private String gearMeta(WorkoutReportEntry entry) {
+        if (entry.confirmedGearDisplay() != null) {
+            return entry.confirmedGearDisplay().isEmpty()
+                    ? " &mdash; gear: none (Strava's own default)"
+                    : " &mdash; gear: " + escape(entry.confirmedGearDisplay());
+        }
+        if (entry.plannedGearId() != null) {
+            String display = entry.plannedGearDisplay() != null ? entry.plannedGearDisplay() : entry.plannedGearId();
+            return " &mdash; planned gear: " + escape(display);
+        }
+        return "";
     }
 
     /** Mirrors {@link PhotoReportGenerator}'s own activity link text/format exactly. */

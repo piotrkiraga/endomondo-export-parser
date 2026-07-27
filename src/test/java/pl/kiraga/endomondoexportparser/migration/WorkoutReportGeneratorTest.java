@@ -2,11 +2,16 @@ package pl.kiraga.endomondoexportparser.migration;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.RestClient;
 import pl.kiraga.endomondoexportparser.service.EndomondoJsonParser;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Optional;
 
@@ -14,36 +19,79 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withUnauthorizedRequest;
 
 /**
  * Builds archives from the fixtures used elsewhere in the migration package, the same
- * way {@link MigrationPlannerTest} does. {@link PlaceLookup} is stubbed throughout: no
- * test in this class touches the network, matching the report's offline guarantee.
+ * way {@link MigrationPlannerTest} does. {@link PlaceLookup} is stubbed throughout.
+ * {@code generator} and {@code generatorWithOldBikeGear} are never connected to Strava
+ * (an always-empty token store), so every test using them stays fully offline, matching
+ * the report's planned-gear-only path; the dedicated "confirmed gear" tests below wire a
+ * real, connected {@link StravaClient} against a {@link MockRestServiceServer} instead.
  */
 public class WorkoutReportGeneratorTest {
 
+    private static final Clock FIXED_NOON = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC);
     private static final PlaceLookup NO_PLACES = (lat, lon) -> Optional.empty();
     private static final PlaceDescription VISTULA_IN_KRAKOW =
             new PlaceDescription("Kraków", null, new NearbyFeature("Vistula", FeatureKind.WATER, 50));
     private static final PlaceLookup ALWAYS_VISTULA = (lat, lon) -> Optional.of(VISTULA_IN_KRAKOW);
 
+    @TempDir
+    static Path sharedTemp;
+
     private final WorkoutReportGenerator generator = generatorWith(NO_PLACES);
 
+    private StravaTokenStore notConnectedTokenStore() {
+        return new StravaTokenStore(sharedTemp.resolve("never-written-tokens.json"));
+    }
+
     private WorkoutReportGenerator generatorWith(PlaceLookup placeLookup) {
+        StravaTokenStore tokenStore = notConnectedTokenStore();
+        StravaClient stravaClient = new StravaClient(RestClient.builder(), tokenStore, "client-id", "client-secret",
+                FIXED_NOON, millis -> { });
         return new WorkoutReportGenerator(
                 new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
                 new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), placeLookup),
-                new OldBikeGearResolver());
+                new OldBikeGearResolver(), new ConfirmedGearResolver(stravaClient), tokenStore, new RequestThrottle(0));
     }
 
     private WorkoutReportGenerator generatorWithOldBikeGear(String gearId, String cutoffDate) {
         OldBikeGearResolver oldBikeGearResolver = new OldBikeGearResolver();
         oldBikeGearResolver.setOldBikeGearId(gearId);
         oldBikeGearResolver.setOldBikeCutoffDate(cutoffDate);
+        StravaTokenStore tokenStore = notConnectedTokenStore();
+        StravaClient stravaClient = new StravaClient(RestClient.builder(), tokenStore, "client-id", "client-secret",
+                FIXED_NOON, millis -> { });
         return new WorkoutReportGenerator(
                 new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
                 new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), NO_PLACES),
-                oldBikeGearResolver);
+                oldBikeGearResolver, new ConfirmedGearResolver(stravaClient), tokenStore, new RequestThrottle(0));
+    }
+
+    /** A generator connected to Strava via a mocked network, for the confirmed-gear tests. */
+    private record ConnectedRig(WorkoutReportGenerator generator, MockRestServiceServer server) {
+    }
+
+    private ConnectedRig connectedGenerator(Path tempDir) {
+        return connectedGenerator(tempDir, new OldBikeGearResolver());
+    }
+
+    private ConnectedRig connectedGenerator(Path tempDir, OldBikeGearResolver oldBikeGearResolver) {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        StravaTokenStore tokenStore = new StravaTokenStore(tempDir.resolve("tokens.json"));
+        tokenStore.save(new StravaTokens("t", "refresh-1", FIXED_NOON.instant().plusSeconds(3600).getEpochSecond()));
+        StravaClient stravaClient = new StravaClient(builder, tokenStore, "client-id", "client-secret", FIXED_NOON,
+                millis -> { });
+        WorkoutReportGenerator generator = new WorkoutReportGenerator(
+                new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
+                new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), NO_PLACES),
+                oldBikeGearResolver, new ConfirmedGearResolver(stravaClient), tokenStore, new RequestThrottle(0));
+        return new ConnectedRig(generator, server);
     }
 
     private void copyFixture(Path workoutsDirectory, String fixture, String basename) throws Exception {
@@ -88,7 +136,7 @@ public class WorkoutReportGeneratorTest {
         WorkoutReportEntry entry = generatorWithOldBikeGear("b18387038", "2021-01-31")
                 .build(archiveRoot).entries().get(0);
 
-        assertEquals("b18387038", entry.gearId());
+        assertEquals("b18387038", entry.plannedGearId());
     }
 
     @Test
@@ -99,7 +147,7 @@ public class WorkoutReportGeneratorTest {
 
         WorkoutReportEntry entry = generator.build(archiveRoot).entries().get(0);
 
-        assertNull(entry.gearId());
+        assertNull(entry.plannedGearId());
     }
 
     @Test
@@ -261,6 +309,128 @@ public class WorkoutReportGeneratorTest {
         String html = Files.readString(outputHtmlFile);
         assertTrue(html.contains("Skip"));
         assertTrue(html.contains("no paired TCX"));
+    }
+
+    // --- Confirmed gear (already-migrated workouts, connected to Strava) ---
+
+    @Test
+    void migratedWorkoutShowsConfirmedGearRatherThanPlannedWhenConnected(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        ConnectedRig rig = connectedGenerator(root);
+        rig.server().expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andRespond(withSuccess("{\"id\": 777, \"gear_id\": \"b18387038\"}", APPLICATION_JSON));
+        rig.server().expect(requestTo("https://www.strava.com/api/v3/gear/b18387038"))
+                .andRespond(withSuccess("{\"id\": \"b18387038\", \"name\": \"Trek Checkpoint\"}", APPLICATION_JSON));
+
+        WorkoutReportEntry entry = rig.generator()
+                .build(archiveRoot, Map.of("2011-09-10 12_58_59.0", 777L)).entries().get(0);
+
+        assertEquals("Trek Checkpoint (b18387038)", entry.confirmedGearDisplay());
+        rig.server().verify();
+    }
+
+    @Test
+    void migratedWorkoutConfirmsNoGearRatherThanFallingBackToPlanned(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        ConnectedRig rig = connectedGenerator(root);
+        rig.server().expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andRespond(withSuccess("{\"id\": 777}", APPLICATION_JSON));
+
+        WorkoutReportEntry entry = rig.generator()
+                .build(archiveRoot, Map.of("2011-09-10 12_58_59.0", 777L)).entries().get(0);
+
+        assertEquals("", entry.confirmedGearDisplay(), "confirmed empty, not null — a real answer, not a fallback case");
+        rig.server().verify();
+    }
+
+    @Test
+    void migratedWorkoutFallsBackToPlannedGearWhenTheLiveReadFails(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        ConnectedRig rig = connectedGenerator(root);
+        rig.server().expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andRespond(withUnauthorizedRequest());
+
+        WorkoutReportEntry entry = rig.generator()
+                .build(archiveRoot, Map.of("2011-09-10 12_58_59.0", 777L)).entries().get(0);
+
+        assertNull(entry.confirmedGearDisplay());
+        rig.server().verify();
+    }
+
+    @Test
+    void notMigratedWorkoutNeverAttemptsALiveLookupEvenWhenConnected(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        ConnectedRig rig = connectedGenerator(root);
+        // No server.expect(...) at all: no activityId means nothing to look up.
+
+        WorkoutReportEntry entry = rig.generator().build(archiveRoot).entries().get(0);
+
+        assertNull(entry.confirmedGearDisplay());
+        rig.server().verify();
+    }
+
+    @Test
+    void plannedGearShowsItsNameTooWhenConnectedEvenThoughNotYetMigrated(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        OldBikeGearResolver oldBikeGearResolver = new OldBikeGearResolver();
+        oldBikeGearResolver.setOldBikeGearId("b18387038");
+        oldBikeGearResolver.setOldBikeCutoffDate("2021-01-31");
+        ConnectedRig rig = connectedGenerator(root, oldBikeGearResolver);
+        // No /activities expectation: this workout isn't migrated, so there is nothing to
+        // confirm — only the planned gear's own name is looked up, once.
+        rig.server().expect(requestTo("https://www.strava.com/api/v3/gear/b18387038"))
+                .andRespond(withSuccess("{\"id\": \"b18387038\", \"name\": \"Trek Checkpoint\"}", APPLICATION_JSON));
+
+        WorkoutReportEntry entry = rig.generator().build(archiveRoot).entries().get(0);
+
+        assertEquals("b18387038", entry.plannedGearId());
+        assertEquals("Trek Checkpoint (b18387038)", entry.plannedGearDisplay());
+        assertNull(entry.confirmedGearDisplay());
+        rig.server().verify();
+    }
+
+    @Test
+    void plannedGearNameIsResolvedOnceAndReusedAcrossEntries(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+        copyFixture(workouts, "workout-tracked.json", "2011-09-11 12_58_59.0");
+        writeTrack(workouts, "2011-09-11 12_58_59.0");
+
+        OldBikeGearResolver oldBikeGearResolver = new OldBikeGearResolver();
+        oldBikeGearResolver.setOldBikeGearId("b18387038");
+        oldBikeGearResolver.setOldBikeCutoffDate("2021-01-31");
+        ConnectedRig rig = connectedGenerator(root, oldBikeGearResolver);
+        // Exactly one /gear expectation: a second call would fail server.verify() below.
+        rig.server().expect(requestTo("https://www.strava.com/api/v3/gear/b18387038"))
+                .andRespond(withSuccess("{\"id\": \"b18387038\", \"name\": \"Trek Checkpoint\"}", APPLICATION_JSON));
+
+        WorkoutReport report = rig.generator().build(archiveRoot);
+
+        assertEquals(2, report.entries().size());
+        report.entries().forEach(entry -> assertEquals("Trek Checkpoint (b18387038)", entry.plannedGearDisplay()));
+        rig.server().verify();
     }
 
 }

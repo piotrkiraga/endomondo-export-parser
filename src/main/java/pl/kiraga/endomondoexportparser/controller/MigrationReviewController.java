@@ -6,16 +6,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.ModelAndView;
+import pl.kiraga.endomondoexportparser.migration.ConfirmedGearResolver;
 import pl.kiraga.endomondoexportparser.migration.LedgerEntry;
 import pl.kiraga.endomondoexportparser.migration.LedgerStatus;
 import pl.kiraga.endomondoexportparser.migration.MigrationExecutor;
 import pl.kiraga.endomondoexportparser.migration.MigrationLedger;
 import pl.kiraga.endomondoexportparser.migration.PlannedAction;
 import pl.kiraga.endomondoexportparser.migration.ResolvedWorkout;
-import pl.kiraga.endomondoexportparser.migration.StravaActivity;
-import pl.kiraga.endomondoexportparser.migration.StravaApiException;
-import pl.kiraga.endomondoexportparser.migration.StravaClient;
-import pl.kiraga.endomondoexportparser.migration.StravaGear;
 import pl.kiraga.endomondoexportparser.migration.StravaTokenStore;
 import pl.kiraga.endomondoexportparser.migration.WorkoutPhotoResolver;
 
@@ -43,7 +40,7 @@ public class MigrationReviewController extends BaseController {
     private final MigrationLedger ledger;
     private final WorkoutPhotoResolver photoResolver;
     private final StravaTokenStore stravaTokenStore;
-    private final StravaClient stravaClient;
+    private final ConfirmedGearResolver confirmedGearResolver;
 
     @Value("${endomondo.archive.root}")
     private String archiveRootProperty;
@@ -53,12 +50,12 @@ public class MigrationReviewController extends BaseController {
 
     public MigrationReviewController(MigrationExecutor executor, MigrationLedger ledger,
                                       WorkoutPhotoResolver photoResolver, StravaTokenStore stravaTokenStore,
-                                      StravaClient stravaClient) {
+                                      ConfirmedGearResolver confirmedGearResolver) {
         this.executor = executor;
         this.ledger = ledger;
         this.photoResolver = photoResolver;
         this.stravaTokenStore = stravaTokenStore;
-        this.stravaClient = stravaClient;
+        this.confirmedGearResolver = confirmedGearResolver;
     }
 
     /** {@code @Value} fields aren't populated outside a Spring context; tests set them directly. */
@@ -218,20 +215,6 @@ public class MigrationReviewController extends BaseController {
         return String.format(Locale.ROOT, "%.1f", km);
     }
 
-    /**
-     * "{name} ({id})", e.g. "Trek Checkpoint (b18387038)" — falls back to the bare id if
-     * the gear's name can't be looked up (a second, independent Strava call from the
-     * activity read above; its failure doesn't invalidate the id we already have).
-     */
-    private String gearDisplay(String gearId) {
-        try {
-            StravaGear gear = stravaClient.getGear(gearId);
-            return gear.name() == null || gear.name().isBlank() ? gearId : gear.name() + " (" + gearId + ")";
-        } catch (StravaApiException e) {
-            return gearId;
-        }
-    }
-
     private List<ResolvedWorkout> actionable(Path archiveRoot) {
         return executor.resolveAll(archiveRoot).stream()
                 .filter(workout -> workout.action() != PlannedAction.SKIP)
@@ -269,14 +252,10 @@ public class MigrationReviewController extends BaseController {
         modelAndView.addObject("hasDecision", entry.map(e -> e.status() != LedgerStatus.PENDING).orElse(false));
 
         if (isDone && stravaTokenStore.load().isPresent()) {
-            try {
-                StravaActivity current = stravaClient.getActivity(entry.get().activityId());
-                String gearId = current.gearId();
-                modelAndView.addObject("currentGearDisplay", gearId == null || gearId.isBlank() ? null : gearDisplay(gearId));
-                modelAndView.addObject("gearLookupFailed", false);
-            } catch (StravaApiException e) {
-                modelAndView.addObject("gearLookupFailed", true);
-            }
+            Optional<String> confirmedGearId = confirmedGearResolver.gearIdFor(entry.get().activityId());
+            modelAndView.addObject("gearLookupFailed", confirmedGearId.isEmpty());
+            confirmedGearId.filter(id -> !id.isBlank())
+                    .ifPresent(id -> modelAndView.addObject("currentGearDisplay", confirmedGearResolver.display(id)));
         }
 
         Path photoReportRoot = Path.of(photoReportOutputDirectory).toAbsolutePath().normalize();
