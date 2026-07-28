@@ -49,10 +49,10 @@
 
 ## 7. End-to-end (user-gated writes)
 
-- [ ] 7.1 Dry-run over the real archive in the running app: 162 workouts planned (136+1 uploads, 25 manual), all sports mapped, 29 photo groups / 81 photos accounted for, report generated (verify: numbers match the archive survey)
-- [ ] 7.2 **USER GATE** — smoke migration of 1–2 activities against the real Strava account after the user creates the API app and authorizes; verify in Strava (optionally via the read-only Strava connector) then decide (verify: activity visible with correct name/sport/route)
-- [ ] 7.3 **USER GATE** — full migration run on the user's go; regenerate the photo report with live links; reconcile run summary vs. ledger vs. Strava (verify: user confirms activities in Strava apps)
-- [ ] 7.4 Reconcile spec deltas against observed behavior; validate; commit (verify: `openspec validate migrate-to-strava` passes; suite green)
+- [x] 7.1 Dry-run over the real archive in the running app: 162 workouts planned (136+1 uploads, 25 manual), all sports mapped, 29 photo groups / 81 photos accounted for, report generated (verify: numbers match the archive survey) — confirmed against the real archive during 9.1's build and re-confirmed throughout the migration; numbers held exactly.
+- [x] 7.2 **USER GATE** — smoke migration of 1–2 activities against the real Strava account after the user creates the API app and authorizes; verify in Strava (optionally via the read-only Strava connector) then decide (verify: activity visible with correct name/sport/route) — done 2026-07-21 as the first real click-through of 6.1's review page; this is what surfaced the old-bike gear correction need (see 4.3/design.md) and the review page's missing Previous button and photo thumbnails, all fixed same day.
+- [x] 7.3 **USER GATE** — full migration run on the user's go; regenerate the photo report with live links; reconcile run summary vs. ledger vs. Strava (verify: user confirms activities in Strava apps) — completed 2026-07-28: all 162 workouts decided (135 uploaded, 25 manual-created, 2 duplicate-rejections without a returned `activity_id` recorded as cosmetically `FAILED` though independently confirmed present on Strava — see the new spec scenario below). This run is also what surfaced the real production bug in `withRetryOn429` (a connection reset on the post-429 retry escaped unwrapped instead of becoming a `StravaApiException`), fixed and regression-tested the same day. A follow-on, out-of-scope-for-this-change cleanup (gear assignment on pre-existing native Strava rides never touched by this migration) was done separately via ad hoc scripts, not through the app.
+- [x] 7.4 Reconcile spec deltas against observed behavior; validate; commit (verify: `openspec validate migrate-to-strava` passes; suite green) — this task.
 
 ## 8. Location enrichment (feeds 3.1's naming/description and 5.2's captions)
 

@@ -35,6 +35,25 @@ After an activity exists, the migration SHALL set its name from the JSON `name` 
 - **WHEN** a workout carries a sport value missing from the mapping
 - **THEN** the workout is reported as skipped-with-reason and the migration continues
 
+#### Scenario: A duplicate rejection without a returned activity id is recorded as failed, not silently reconciled
+- **WHEN** Strava rejects an upload as a duplicate of an existing activity but the rejection response carries no `activity_id`
+- **THEN** the workout is recorded as failed in the ledger, even though no duplicate activity was actually created, because success is decided solely by an activity id being present in the response
+
+### Requirement: A configured old-bike gear correction is attempted best-effort, and shown as confirmed rather than assumed
+For a Ride workout dated on or before a configured cutoff date, with an old bike's gear id configured, the migration SHALL include that gear id on the activity's post-upload metadata update. This correction is best-effort only: Strava's public API is known to silently accept and discard `gear_id` on some activities rather than applying it (a real, undocumented platform limitation, not a defect in this app's request). Because the write cannot be trusted, any page displaying a migrated workout's gear (the review page, the workout report) SHALL read the activity's actual gear back from Strava when connected, and label it as confirmed; only when not connected, or for a not-yet-migrated workout, SHALL the offline-computed planned gear id be shown, explicitly labeled as planned rather than confirmed.
+
+#### Scenario: Gear correction is attempted for a pre-cutoff Ride
+- **WHEN** a Ride workout dated on or before the configured cutoff date is migrated with an old-bike gear id configured
+- **THEN** the post-upload metadata update includes that gear id
+
+#### Scenario: Gear correction does not apply outside its configured scope
+- **WHEN** a workout is not a Ride, is dated after the configured cutoff, or no old-bike gear id is configured
+- **THEN** the metadata update omits `gear_id` entirely, never sending it as `null`
+
+#### Scenario: Confirmed gear, not the planned value, is shown once connected
+- **WHEN** the review page or workout report displays a migrated workout's gear while connected to Strava
+- **THEN** it shows the gear actually read back from the activity, labeled as confirmed, even if it differs from the planned gear id
+
 ### Requirement: Generated names and descriptions are enriched with the workout's approximate location
 When a workout's name is generated (not JSON-supplied) and its starting coordinates resolve to a notable nearby feature (a river/water body, a historic site or landmark, a park, or a named boulevard) via reverse geocoding, the migration SHALL append that place to the generated name, and SHALL append a corresponding sentence to the activity description. Enrichment SHALL never modify a JSON-supplied name. A geocoding failure or an absent nearby feature SHALL NOT block the workout; the name and description fall back to their un-enriched form.
 
