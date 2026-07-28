@@ -4,15 +4,15 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.ModelAndView;
-import pl.kiraga.endomondoexportparser.migration.StravaDictionary;
+import pl.kiraga.endomondoexportparser.service.StravaDictionaryService;
 
 @Controller
 @RequestMapping(value = {"/", "/home"})
 public class HomeController extends BaseController {
 
-    private final StravaDictionary stravaDictionary;
+    private final StravaDictionaryService stravaDictionary;
 
-    public HomeController(StravaDictionary stravaDictionary) {
+    public HomeController(StravaDictionaryService stravaDictionary) {
         this.stravaDictionary = stravaDictionary;
     }
 

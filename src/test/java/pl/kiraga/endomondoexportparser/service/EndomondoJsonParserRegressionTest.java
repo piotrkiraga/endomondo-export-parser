@@ -1,18 +1,18 @@
 package pl.kiraga.endomondoexportparser.service;
 
-import org.junit.jupiter.api.Test;
-import pl.kiraga.endomondoexportparser.format.json.EndomondoJson;
-import pl.kiraga.endomondoexportparser.format.json.Picture;
-import pl.kiraga.endomondoexportparser.format.json.Point;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import pl.kiraga.endomondoexportparser.dto.endomondo.EndomondoJsonDto;
+import pl.kiraga.endomondoexportparser.dto.endomondo.PictureDto;
+import pl.kiraga.endomondoexportparser.dto.endomondo.PointDto;
+import pl.kiraga.endomondoexportparser.exception.InvalidWorkoutJsonException;
 
 /**
  * Regression suite for the Endomondo JSON parser. Grew out of the characterization
@@ -35,7 +35,7 @@ public class EndomondoJsonParserRegressionTest {
 
     @Test
     void manualWorkoutFixtureParsesFully() throws Exception {
-        EndomondoJson result = parser.parse(fixture("workout-manual.json"));
+        EndomondoJsonDto result = parser.parse(fixture("workout-manual.json"));
 
         assertEquals("Sample manual walk", result.getName());
         assertEquals("WALKING", result.getSport());
@@ -46,9 +46,9 @@ public class EndomondoJsonParserRegressionTest {
         assertEquals(491.268, result.getCalories_kcal());
         assertEquals(3.3, result.getSpeed_avg_kmh());
 
-        List<Point> points = result.getPoints();
+        List<PointDto> points = result.getPoints();
         assertEquals(26, points.size());
-        for (Point point : points) {
+        for (PointDto point : points) {
             assertNotNull(point.getLocation());
             assertNotNull(point.getLocation().getLatitude());
             assertNotNull(point.getLocation().getLongitude());
@@ -61,7 +61,7 @@ public class EndomondoJsonParserRegressionTest {
 
     @Test
     void trackedWorkoutFixtureParsesFully() throws Exception {
-        EndomondoJson result = parser.parse(fixture("workout-tracked.json"));
+        EndomondoJsonDto result = parser.parse(fixture("workout-tracked.json"));
 
         assertEquals("Sample tracked ride", result.getName());
         assertEquals("CYCLING_SPORT", result.getSport());
@@ -76,11 +76,11 @@ public class EndomondoJsonParserRegressionTest {
         assertEquals(286.0, result.getDescend_m());
         assertEquals(33.9, result.getSpeed_max_kmh());
 
-        List<Point> points = result.getPoints();
+        List<PointDto> points = result.getPoints();
         assertEquals(8, points.size());
 
         // first point has no altitude/speed entries in the file
-        Point first = points.get(0);
+        PointDto first = points.get(0);
         assertEquals(47.503514, first.getLocation().getLatitude());
         assertEquals(14.903923, first.getLocation().getLongitude());
         assertEquals(0.0, first.getDistance_km());
@@ -88,7 +88,7 @@ public class EndomondoJsonParserRegressionTest {
         assertNull(first.getAltitude());
         assertNull(first.getSpeed_kmh());
 
-        Point second = points.get(1);
+        PointDto second = points.get(1);
         assertEquals(302.0, second.getAltitude());
         assertEquals(0.0, second.getDistance_km());
         assertEquals(0.0, second.getSpeed_kmh());
@@ -101,19 +101,19 @@ public class EndomondoJsonParserRegressionTest {
 
     @Test
     void pictureBearingFixtureParsesItsPictures() throws Exception {
-        EndomondoJson result = parser.parse(fixture("workout-with-pictures.json"));
+        EndomondoJsonDto result = parser.parse(fixture("workout-with-pictures.json"));
 
-        List<Picture> pictures = result.getPictures();
+        List<PictureDto> pictures = result.getPictures();
         assertEquals(2, pictures.size());
 
-        Picture located = pictures.get(0);
+        PictureDto located = pictures.get(0);
         assertEquals("2015-04-11 14:34:19.0", located.getCreated_date());
         assertEquals("resources/gfx/image/10000001/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/big.jpg", located.getUrl());
         assertEquals(47.503382, located.getPoint().getLatitude());
         assertEquals(14.903374, located.getPoint().getLongitude());
 
         // 69 of the archive's 80 pictures carry no point; those fall back to other sources
-        Picture unlocated = pictures.get(1);
+        PictureDto unlocated = pictures.get(1);
         assertEquals("2015-04-11 14:51:02.0", unlocated.getCreated_date());
         assertEquals("resources/gfx/image/10000002/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/big.jpg", unlocated.getUrl());
         assertNull(unlocated.getPoint());
@@ -121,14 +121,14 @@ public class EndomondoJsonParserRegressionTest {
 
     @Test
     void workoutWithoutPicturesYieldsEmptyList() throws Exception {
-        EndomondoJson result = parser.parse(fixture("workout-manual.json"));
+        EndomondoJsonDto result = parser.parse(fixture("workout-manual.json"));
 
         assertTrue(result.getPictures().isEmpty());
     }
 
     @Test
     void pictureParsingDoesNotDisturbPoints() throws Exception {
-        EndomondoJson result = parser.parse(fixture("workout-with-pictures.json"));
+        EndomondoJsonDto result = parser.parse(fixture("workout-with-pictures.json"));
 
         assertEquals(1, result.getPoints().size());
         assertEquals(47.503514, result.getPoints().get(0).getLocation().getLatitude());
@@ -138,7 +138,7 @@ public class EndomondoJsonParserRegressionTest {
 
     @Test
     void typeConformingDocumentPopulatesScalarFields() {
-        EndomondoJson result = parser.parse(bytes("["
+        EndomondoJsonDto result = parser.parse(bytes("["
                 + "{\"name\": \"Sample manual walk\"},"
                 + "{\"sport\": \"WALKING\"},"
                 + "{\"source\": \"INPUT_MANUAL\"},"
@@ -165,12 +165,12 @@ public class EndomondoJsonParserRegressionTest {
 
     @Test
     void pointsAreAttachedWithFullLocations() {
-        EndomondoJson result = parser.parse(bytes("["
+        EndomondoJsonDto result = parser.parse(bytes("["
                 + "{\"name\": \"x\"},"
                 + "{\"points\": [[{\"location\": [[{\"latitude\": 1.5}, {\"longitude\": 2.5}]]}]]}"
                 + "]"));
 
-        List<Point> points = result.getPoints();
+        List<PointDto> points = result.getPoints();
         assertEquals(1, points.size());
         assertEquals(1.5, points.get(0).getLocation().getLatitude());
         assertEquals(2.5, points.get(0).getLocation().getLongitude());
@@ -190,7 +190,7 @@ public class EndomondoJsonParserRegressionTest {
 
     @Test
     void emptyArrayReturnsEmptyWorkout() {
-        EndomondoJson result = parser.parse(bytes("[]"));
+        EndomondoJsonDto result = parser.parse(bytes("[]"));
 
         assertNull(result.getName());
         assertNull(result.getDuration_s());

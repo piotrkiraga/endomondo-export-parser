@@ -1,29 +1,28 @@
 package pl.kiraga.endomondoexportparser.controller;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.servlet.ModelAndView;
-import pl.kiraga.endomondoexportparser.migration.ConfirmedGearResolver;
-import pl.kiraga.endomondoexportparser.migration.DisplayTime;
-import pl.kiraga.endomondoexportparser.migration.LedgerEntry;
-import pl.kiraga.endomondoexportparser.migration.LedgerStatus;
-import pl.kiraga.endomondoexportparser.migration.MigrationExecutor;
-import pl.kiraga.endomondoexportparser.migration.MigrationLedger;
-import pl.kiraga.endomondoexportparser.migration.OldBikeGearResolver;
-import pl.kiraga.endomondoexportparser.migration.PlannedAction;
-import pl.kiraga.endomondoexportparser.migration.ResolvedWorkout;
-import pl.kiraga.endomondoexportparser.migration.StravaTokenStore;
-import pl.kiraga.endomondoexportparser.migration.WorkoutPhotoResolver;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.ModelAndView;
+import pl.kiraga.endomondoexportparser.model.LedgerEntry;
+import pl.kiraga.endomondoexportparser.model.LedgerStatus;
+import pl.kiraga.endomondoexportparser.model.PlannedAction;
+import pl.kiraga.endomondoexportparser.model.ResolvedWorkout;
+import pl.kiraga.endomondoexportparser.service.ConfirmedGearResolver;
+import pl.kiraga.endomondoexportparser.service.MigrationExecutor;
+import pl.kiraga.endomondoexportparser.service.MigrationLedger;
+import pl.kiraga.endomondoexportparser.service.OldBikeGearResolver;
+import pl.kiraga.endomondoexportparser.service.StravaTokenStore;
+import pl.kiraga.endomondoexportparser.service.WorkoutPhotoResolver;
+import pl.kiraga.endomondoexportparser.util.DisplayTimeUtil;
 
 /**
  * The one-workout-at-a-time interactive migration flow (task 6.1), decided with the
@@ -249,7 +248,7 @@ public class MigrationReviewController extends BaseController {
 
         Optional<LedgerEntry> entry = ledger.find(workout.basename());
         modelAndView.addObject("ledgerEntry", entry.orElse(null));
-        modelAndView.addObject("formattedMigratedOn", entry.map(e -> DisplayTime.of(e.updatedAt())).orElse(null));
+        modelAndView.addObject("formattedMigratedOn", entry.map(e -> DisplayTimeUtil.of(e.updatedAt())).orElse(null));
         boolean isDone = entry.map(e -> e.status() == LedgerStatus.DONE).orElse(false);
         modelAndView.addObject("isDone", isDone);
         modelAndView.addObject("isFailed", entry.map(e -> e.status() == LedgerStatus.FAILED).orElse(false));

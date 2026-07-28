@@ -171,8 +171,9 @@ executor that drives uploads/creates through it, and the interactive review page
 it all together in the browser. Over a real 162-workout archive the planner produces 137
 track uploads and 25 manual activities with nothing skipped.
 
-What's left is entirely the real thing: the executor has not yet touched a real Strava
-account, deliberately. Every write is gated behind an explicit user action — a dry run is
-the default path everywhere, and even the review page never migrates a workout without a
-click — so the two remaining steps are a small supervised smoke run, then the full archive,
-both requiring the user's own go-ahead.
+The full migration against a real Strava account is done, too: every write stayed gated
+behind an explicit user action — a dry run is the default path everywhere, and the review
+page never migrates a workout without a click — through both the supervised smoke run and
+the full archive. All 162 workouts are decided (135 uploaded, 25 manual-created, and 2
+duplicate-rejections that read as failed in the ledger only because Strava's response didn't
+echo an activity id back — both independently confirmed present on Strava).

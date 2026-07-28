@@ -1,0 +1,20 @@
+package pl.kiraga.endomondoexportparser.model;
+
+import pl.kiraga.endomondoexportparser.service.MigrationLedger;
+
+/** A workout's migration state within {@link MigrationLedger}. */
+public enum LedgerStatus {
+
+    /** Written before the Strava call that would create/upload this workout. */
+    PENDING,
+
+    /** The Strava call succeeded; {@link LedgerEntry#activityId()} is set. */
+    DONE,
+
+    /** The Strava call failed; {@link LedgerEntry#reason()} explains why. */
+    FAILED,
+
+    /** The user chose not to migrate this workout, from the interactive review page. */
+    SKIPPED
+
+}

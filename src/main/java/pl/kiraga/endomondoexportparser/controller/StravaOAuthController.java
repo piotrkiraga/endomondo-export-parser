@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.UriComponentsBuilder;
-import pl.kiraga.endomondoexportparser.migration.StravaApiException;
-import pl.kiraga.endomondoexportparser.migration.StravaClient;
+import pl.kiraga.endomondoexportparser.exception.StravaApiException;
+import pl.kiraga.endomondoexportparser.service.StravaClient;
 
 import java.time.Duration;
 import java.util.ArrayList;

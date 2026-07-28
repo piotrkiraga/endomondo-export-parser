@@ -1,14 +1,10 @@
 package pl.kiraga.endomondoexportparser.controller;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.test.web.client.MockRestServiceServer;
-import org.springframework.web.servlet.ModelAndView;
-import pl.kiraga.endomondoexportparser.migration.MigrationTestSupport;
-import pl.kiraga.endomondoexportparser.migration.StravaDictionarySnapshot;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -16,12 +12,15 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.servlet.ModelAndView;
+import pl.kiraga.endomondoexportparser.dto.strava.StravaDictionarySnapshotDto;
+import pl.kiraga.endomondoexportparser.service.MigrationTestSupport;
 
 /**
  * Uses {@link MigrationTestSupport}'s mocked-network rig, the same safety bar
@@ -77,7 +76,7 @@ public class StravaDictionaryControllerTest {
 
         ModelAndView mav = controller.refresh(new ModelAndView());
 
-        StravaDictionarySnapshot snapshot = (StravaDictionarySnapshot) mav.getModel().get("snapshot");
+        StravaDictionarySnapshotDto snapshot = (StravaDictionarySnapshotDto) mav.getModel().get("snapshot");
         assertEquals("Piotr", snapshot.firstname());
         assertEquals("Decathlon Riverside 5 Man", snapshot.gearNames().get("b18387038"));
         server.verify();

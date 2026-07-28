@@ -4,12 +4,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.servlet.ModelAndView;
-import pl.kiraga.endomondoexportparser.migration.LedgerEntry;
-import pl.kiraga.endomondoexportparser.migration.MigrationLedger;
-import pl.kiraga.endomondoexportparser.migration.MigrationTestSupport;
-import pl.kiraga.endomondoexportparser.migration.PlannedAction;
-import pl.kiraga.endomondoexportparser.migration.ResolvedWorkout;
-import pl.kiraga.endomondoexportparser.migration.StravaClient;
+import pl.kiraga.endomondoexportparser.service.MigrationTestSupport;
+import pl.kiraga.endomondoexportparser.model.LedgerEntry;
+import pl.kiraga.endomondoexportparser.model.PlannedAction;
+import pl.kiraga.endomondoexportparser.model.ResolvedWorkout;
+import pl.kiraga.endomondoexportparser.service.MigrationLedger;
+import pl.kiraga.endomondoexportparser.service.StravaClient;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,12 +25,13 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+
 /**
  * Calls controller methods directly rather than through {@code MockMvc}/Thymeleaf, so
  * this never needs a Spring context — no risk of a stray request reaching the real
  * {@code StravaClient}. {@link StravaClient} here is wired to a {@link MockRestServiceServer}
  * via {@link MigrationTestSupport}, the same safety bar
- * {@link pl.kiraga.endomondoexportparser.migration.MigrationExecutorTest} uses, so even
+ * {@link pl.kiraga.endomondoexportparser.service.MigrationExecutorTest} uses, so even
  * a future test accidentally exercising {@code migrate} cannot reach the real network.
  * Actual Thymeleaf template rendering is verified separately, live.
  */

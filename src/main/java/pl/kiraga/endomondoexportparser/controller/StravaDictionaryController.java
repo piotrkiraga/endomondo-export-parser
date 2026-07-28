@@ -1,17 +1,17 @@
 package pl.kiraga.endomondoexportparser.controller;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.ModelAndView;
-import pl.kiraga.endomondoexportparser.migration.DisplayTime;
-import pl.kiraga.endomondoexportparser.migration.StravaApiException;
-import pl.kiraga.endomondoexportparser.migration.StravaDictionary;
-import pl.kiraga.endomondoexportparser.migration.StravaDictionarySnapshot;
-import pl.kiraga.endomondoexportparser.migration.StravaTokenStore;
-
-import java.util.ArrayList;
-import java.util.List;
+import pl.kiraga.endomondoexportparser.dto.strava.StravaDictionarySnapshotDto;
+import pl.kiraga.endomondoexportparser.exception.StravaApiException;
+import pl.kiraga.endomondoexportparser.service.ConfirmedGearResolver;
+import pl.kiraga.endomondoexportparser.service.StravaDictionaryService;
+import pl.kiraga.endomondoexportparser.service.StravaTokenStore;
+import pl.kiraga.endomondoexportparser.util.DisplayTimeUtil;
 
 /**
  * Lets the user (re)fetch Strava's rarely-changing "dictionary" data — athlete profile
@@ -24,10 +24,10 @@ import java.util.List;
 @RequestMapping("/migration/strava-dictionary")
 public class StravaDictionaryController extends BaseController {
 
-    private final StravaDictionary stravaDictionary;
+    private final StravaDictionaryService stravaDictionary;
     private final StravaTokenStore stravaTokenStore;
 
-    public StravaDictionaryController(StravaDictionary stravaDictionary, StravaTokenStore stravaTokenStore) {
+    public StravaDictionaryController(StravaDictionaryService stravaDictionary, StravaTokenStore stravaTokenStore) {
         this.stravaDictionary = stravaDictionary;
         this.stravaTokenStore = stravaTokenStore;
     }
@@ -62,9 +62,9 @@ public class StravaDictionaryController extends BaseController {
 
     private void addStatus(ModelAndView modelAndView) {
         modelAndView.addObject("stravaConnected", stravaTokenStore.load().isPresent());
-        StravaDictionarySnapshot snapshot = stravaDictionary.current().orElse(null);
+        StravaDictionarySnapshotDto snapshot = stravaDictionary.current().orElse(null);
         modelAndView.addObject("snapshot", snapshot);
-        modelAndView.addObject("refreshedAtDisplay", snapshot == null ? null : DisplayTime.of(snapshot.refreshedAt()));
+        modelAndView.addObject("refreshedAtDisplay", snapshot == null ? null : DisplayTimeUtil.of(snapshot.refreshedAt()));
     }
 
 }

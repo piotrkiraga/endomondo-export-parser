@@ -1,14 +1,14 @@
 package pl.kiraga.endomondoexportparser.service;
 
+import java.util.Map;
 import org.springframework.stereotype.Service;
-import pl.kiraga.endomondoexportparser.format.json.EndomondoJson;
+import pl.kiraga.endomondoexportparser.dto.endomondo.EndomondoJsonDto;
+import pl.kiraga.endomondoexportparser.exception.InvalidWorkoutJsonException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
-
-import java.util.Map;
 
 /**
  * Parses the frozen Endomondo workout export format: a JSON array of single-key
@@ -30,7 +30,7 @@ public class EndomondoJsonParser {
 
     private final JsonMapper mapper = JsonMapper.builder().build();
 
-    public EndomondoJson parse(byte[] content) {
+    public EndomondoJsonDto parse(byte[] content) {
 
         JsonNode root;
         try {
@@ -48,7 +48,7 @@ public class EndomondoJsonParser {
             ObjectNode workout = mergeSingleKeyObjects(root);
             workout.set(POINTS, normalizePoints(workout.get(POINTS)));
             workout.set(PICTURES, normalizePictures(workout.get(PICTURES)));
-            return mapper.treeToValue(workout, EndomondoJson.class);
+            return mapper.treeToValue(workout, EndomondoJsonDto.class);
         } catch (JacksonException e) {
             throw new InvalidWorkoutJsonException("JSON does not match the workout export structure", e);
         }

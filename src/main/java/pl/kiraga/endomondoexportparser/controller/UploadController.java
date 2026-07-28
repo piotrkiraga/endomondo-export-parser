@@ -1,5 +1,8 @@
 package pl.kiraga.endomondoexportparser.controller;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -7,13 +10,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
-import pl.kiraga.endomondoexportparser.format.json.EndomondoJson;
+import pl.kiraga.endomondoexportparser.dto.endomondo.EndomondoJsonDto;
+import pl.kiraga.endomondoexportparser.exception.InvalidWorkoutJsonException;
+import pl.kiraga.endomondoexportparser.model.WorkoutSummary;
 import pl.kiraga.endomondoexportparser.service.EndomondoJsonParser;
-import pl.kiraga.endomondoexportparser.service.InvalidWorkoutJsonException;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 @Controller
 @RequestMapping(value = "/upload")
@@ -42,7 +42,7 @@ public class UploadController extends BaseController {
         if (errorMessages.isEmpty()) {
 
             try {
-                EndomondoJson endomondoJson = endomondoJsonParser.parse(file.getBytes());
+                EndomondoJsonDto endomondoJson = endomondoJsonParser.parse(file.getBytes());
                 logger.debug("Processed file " + file + ": " + endomondoJson);
                 infoMessages.add(message("infoMessage.form.processed", file.getOriginalFilename()));
                 modelAndView.addObject("summary", WorkoutSummary.from(endomondoJson));

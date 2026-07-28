@@ -21,6 +21,16 @@ context: |
   documentation (Spring Boot 4.1, Spring Framework 7, Jackson 3) — never bare
   shorthand like "Boot" or "Framework 7" without the product name.
 
+  Package layout is by technical layer under pl.kiraga.endomondoexportparser, not
+  by feature: controller/ (Spring MVC), service/ (@Service/@Component beans —
+  clients, resolvers, generators, stores, caches, orchestration), model/ (internal
+  domain records/enums), dto/ (records mirroring an external wire format — Strava's
+  API, Endomondo's export JSON), util/ (stateless/static helpers), exception/,
+  configuration/. Naming: dto/ classes get a Dto suffix, util/ classes get a Util
+  suffix; model/ and service/ classes stay bare (no Model/Service suffix) since the
+  package already conveys the role — a class only needs a suffix when its package
+  alone wouldn't say what it is (e.g. a Strava DTO vs. a Strava service).
+
 rules:
   proposal:
     - Always include a "Non-goals" section
