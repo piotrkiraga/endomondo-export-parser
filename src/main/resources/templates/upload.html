@@ -11,6 +11,8 @@
 
                 <span th:replace="~{fragments/messages-errors}"/>
 
+                <p class="lead" th:text="#{upload.description}">Upload a single Endomondo workout export (JSON) to see it parsed into a readable summary.</p>
+
                 <div class="card mb-4">
                     <div class="card-body">
                         <form th:action="@{/upload/process}" method="post" enctype="multipart/form-data">

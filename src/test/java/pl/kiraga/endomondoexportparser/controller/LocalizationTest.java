@@ -27,7 +27,7 @@ public class LocalizationTest {
         mockMvc.perform(get("/home").param("lang", "pl"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Strona główna")))
-                .andExpect(content().string(containsString("Witaj świecie...")))
+                .andExpect(content().string(containsString("Odczytuje Twój eksport aktywności")))
                 .andExpect(content().string(not(containsString("Å"))));
     }
 
@@ -35,6 +35,7 @@ public class LocalizationTest {
     void uploadFormTranslatesCompletely() throws Exception {
         mockMvc.perform(get("/upload").param("lang", "pl"))
                 .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Prześlij pojedynczy plik eksportu aktywności")))
                 .andExpect(content().string(containsString("Plik zawierający eksport aktywności Endomondo w formacie JSON:")))
                 .andExpect(content().string(containsString("Prześlij")))
                 .andExpect(content().string(not(containsString("Submit"))));
@@ -51,8 +52,8 @@ public class LocalizationTest {
     void defaultLocaleIsEnglish() throws Exception {
         mockMvc.perform(get("/home"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Home view")))
-                .andExpect(content().string(containsString("Hello world...")));
+                .andExpect(content().string(containsString("Home")))
+                .andExpect(content().string(containsString("Reads your Endomondo activity export")));
     }
 
 }

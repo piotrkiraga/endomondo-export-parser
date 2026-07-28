@@ -9,7 +9,7 @@
         <div class="row">
             <div class="col-md-10 mx-auto">
 
-                <span th:text="#{home.welcome}"/>
+                <p class="lead" th:text="#{home.welcome}">Reads your Endomondo activity export and helps you review and migrate it to Strava, one workout at a time.</p>
 
                 <div th:if="${athlete != null}" class="d-flex align-items-center gap-3 mt-3">
                     <img th:if="${athlete.profilePictureUrl != null}" th:src="${athlete.profilePictureUrl}"
