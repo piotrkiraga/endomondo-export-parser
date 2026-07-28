@@ -185,27 +185,33 @@ public class WorkoutReportGenerator {
         StringBuilder section = new StringBuilder("<section class=\"workout\">\n")
                 .append("<h2><span class=\"action ").append(actionClass).append("\">").append(actionLabel)
                 .append("</span> ").append(escape(entry.stravaName())).append("</h2>\n")
-                .append("<div class=\"meta\">")
-                .append(escape(entry.startTime() == null ? "" : entry.startTime()))
-                .append(" &mdash; ").append(escape(entry.stravaSportType() == null ? "" : entry.stravaSportType()));
+                .append("<div class=\"detail-list\">\n")
+                .append(detailRow("Start time", entry.startTime() == null ? "" : escape(entry.startTime())))
+                .append(detailRow("Sport", entry.stravaSportType() == null ? "" : escape(entry.stravaSportType())));
         if (entry.distanceKm() != null) {
-            section.append(" &mdash; ").append(formatNumber(entry.distanceKm())).append(" km");
+            section.append(detailRow("Distance", formatNumber(entry.distanceKm()) + " km"));
         }
         if (entry.durationS() != null) {
-            section.append(" &mdash; ").append(formatDuration(entry.durationS()));
+            section.append(detailRow("Duration", formatDuration(entry.durationS())));
         }
+        section.append("</div>\n")
+                .append("<div class=\"meta\">").append(activityLink(entry.activityId()))
+                .append(" &mdash; <span class=\"basename\">Source: ").append(escape(entry.sourceFiles())).append("</span>");
         if (entry.pictureCount() > 0) {
             section.append(" &mdash; ").append(entry.pictureCount()).append(" photo(s)");
         }
-        section.append(gearMeta(entry));
-        section.append(" &mdash; ").append(activityLink(entry.activityId()))
-                .append(" &mdash; <span class=\"basename\">Source: ").append(escape(entry.sourceFiles())).append("</span>")
+        section.append(gearMeta(entry))
                 .append("</div>\n")
                 .append("<div class=\"description\">").append(escape(tighten(entry.stravaDescription()))).append("</div>\n")
                 .append("</section>\n");
 
         return section.toString();
 
+    }
+
+    private static String detailRow(String label, String value) {
+        return "<div class=\"detail-row\"><span class=\"detail-label\">" + label
+                + "</span><span class=\"detail-value\">" + value + "</span></div>\n";
     }
 
     /**

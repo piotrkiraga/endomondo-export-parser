@@ -37,6 +37,14 @@ public final class ReportStylesUtil {
             .photos figcaption{font-size:.75em;color:var(--muted);margin-top:.3em}
             .no-location{color:#d9534f}
             figcaption.unmatched{font-family:monospace;font-size:.7em}
+            /* Mirrors static/css/app.css's .detail-list/.detail-row (the source of truth) —
+               duplicated, not linked, for the same self-containment reason as the rest of
+               this stylesheet; keep the two in sync by hand if either changes. */
+            .detail-list{display:flex;flex-direction:column;margin:.5em 0}
+            .detail-row{display:flex;justify-content:space-between;align-items:baseline;gap:1.5em;padding:.35em 0;border-bottom:1px solid var(--border)}
+            .detail-row:last-child{border-bottom:none}
+            .detail-label{color:var(--muted);font-size:.85em}
+            .detail-value{font-weight:500;text-align:right}
             #lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;z-index:999;cursor:zoom-out}
             #lightbox.open{display:flex}
             #lightbox img{max-width:95vw;max-height:95vh}

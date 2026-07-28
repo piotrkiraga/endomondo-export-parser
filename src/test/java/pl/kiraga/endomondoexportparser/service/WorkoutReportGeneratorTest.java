@@ -263,6 +263,9 @@ public class WorkoutReportGeneratorTest {
         assertTrue(html.contains("is migrated from Endomondo export data"));
         assertTrue(html.contains("Source: Workouts/2011-09-10 12_58_59.0.json, Workouts/2011-09-10 12_58_59.0.tcx"),
                 "the source file(s) on disk stay visible for cross-reference");
+        assertTrue(html.contains("<div class=\"detail-list\">"),
+                "sport/start time/distance/duration render as a detail-list, matching the in-app pages");
+        assertTrue(html.contains("<span class=\"detail-label\">Sport</span>"));
     }
 
     @Test

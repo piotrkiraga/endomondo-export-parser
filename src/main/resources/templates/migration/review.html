@@ -13,6 +13,8 @@
                     <span th:replace="~{fragments/strava-status :: strava-status}"/>
                 </div>
 
+                <p class="lead" th:text="#{migration.review.description}">Review each workout one at a time and decide whether to migrate it to Strava.</p>
+
                 <div th:unless="${archivePresent}" class="alert alert-warning"
                      th:text="#{migration.photoReport.archiveMissing(${archiveRoot})}">
                     Archive not found
