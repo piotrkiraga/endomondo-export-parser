@@ -11,4 +11,4 @@
 
 ## 3. Validate
 
-- [ ] 3.1 Full `mvnw test` green; generate the report against the real archive and confirm live: marking a workout applies the visual treatment, reloading the report (same browser) preserves the mark, regenerating the report and reopening it still preserves the mark, and the "view on Strava" link opens in a new tab leaving the report in place (verify: `openspec validate photo-report-mark-uploaded --strict` passes)
+- [x] 3.1 Full `mvnw test` green; generate the report against the real archive and confirm live: marking a workout applies the visual treatment, reloading the report (same browser) preserves the mark, regenerating the report and reopening it still preserves the mark, and the "view on Strava" link opens in a new tab leaving the report in place (verify: `openspec validate photo-report-mark-uploaded --strict` passes)
