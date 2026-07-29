@@ -132,6 +132,23 @@ public class PhotoReportGeneratorTest {
         assertEquals("998877", report.groups().get(0).activityId().orElseThrow());
     }
 
+    @Test
+    void activityLinkOpensInANewTab(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of("2015-04-11 11_38_17.0", "998877"));
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains("<a href=\"https://www.strava.com/activities/998877\" target=\"_blank\" rel=\"noopener\">view on Strava</a>"),
+                "the Strava link must open in a new tab without navigating the report away");
+    }
+
     // --- LocationDto resolution surfaced in the report ---
 
     @Test
@@ -292,6 +309,187 @@ public class PhotoReportGeneratorTest {
         assertTrue(html.contains("onclick=\"openLightbox(this.src)\""), "each thumbnail must open the lightbox");
         assertTrue(html.contains("id=\"lightbox\""), "the lightbox overlay must be present");
         assertTrue(html.contains("function openLightbox"), "the lightbox script must be embedded, not linked externally");
+    }
+
+    @Test
+    void generatedFileWiresUpCopyPathWithBothClipboardMechanisms(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of());
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains("function copyPath(button)"), "the copy-path function must be embedded, not linked externally");
+        assertTrue(html.contains("navigator.clipboard.writeText(path)"), "must try the Clipboard API first");
+        assertTrue(html.contains("document.execCommand('copy')"), "must fall back to the legacy copy command");
+    }
+
+    @Test
+    void eachMatchedPhotoGetsACopyPathButtonWithItsAbsolutePath(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of());
+
+        String html = Files.readString(outputHtmlFile);
+        Path expectedCopy1 = outputHtmlFile.resolveSibling("photos").resolve(PHOTO_1).toAbsolutePath().normalize();
+        Path expectedCopy2 = outputHtmlFile.resolveSibling("photos").resolve(PHOTO_2).toAbsolutePath().normalize();
+        assertEquals(2, countOccurrences(html, "class=\"copy-path\""), "every matched photo must have its own copy-path button");
+        assertTrue(html.contains("data-path=\"" + escapeForAssertion(expectedCopy1.toString()) + "\""),
+                "the first photo's button must carry its copy's absolute path");
+        assertTrue(html.contains("data-path=\"" + escapeForAssertion(expectedCopy2.toString()) + "\""),
+                "the second photo's button must carry its copy's absolute path");
+    }
+
+    @Test
+    void unmatchedPhotoAlsoGetsACopyPathButton(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+        photoFile(archiveRoot, PHOTO_UNMATCHED);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of());
+
+        String html = Files.readString(outputHtmlFile);
+        Path expectedUnmatchedCopy = outputHtmlFile.resolveSibling("photos").resolve("unmatched")
+                .resolve(PHOTO_UNMATCHED).toAbsolutePath().normalize();
+        assertEquals(3, countOccurrences(html, "class=\"copy-path\""),
+                "the two matched photos and the unmatched one must each have a copy-path button");
+        assertTrue(html.contains("data-path=\"" + escapeForAssertion(expectedUnmatchedCopy.toString()) + "\""),
+                "the unmatched photo's button must carry its copy's absolute path");
+    }
+
+    @Test
+    void eachWorkoutSectionCarriesItsBasenameForClientSidePersistence(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of());
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains("data-basename=\"2015-04-11 11_38_17.0\""),
+                "the workout section must carry its basename so client-side JS can key localStorage off it");
+    }
+
+    @Test
+    void generatedFileWiresUpMarkAsUploadedPersistence(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of());
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains("function toggleUploaded(basename,button)"), "the toggle function must be embedded");
+        assertTrue(html.contains("function loadUploaded()"), "the localStorage-read function must be embedded");
+        assertTrue(html.contains("endomondo-photo-report:uploaded"), "must use the shared localStorage key");
+        assertTrue(html.contains(".workout.uploaded{"), "the embedded stylesheet must style marked workout groups distinctly");
+    }
+
+    @Test
+    void eachWorkoutGetsExactlyOneMarkUploadedControlRegardlessOfPhotoCount(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+
+        String secondPhoto = "resources/gfx/image/30000003/dddddddddddddddddddddddddddddddd/big.jpg";
+        Files.write(workouts.resolve("2016-02-02 07_15_00.0.json"), ("["
+                + "{\"sport\": \"RUNNING\"},"
+                + "{\"source\": \"TRACK_MOBILE\"},"
+                + "{\"start_time\": \"2016-02-02 07:15:00.0\"},"
+                + "{\"pictures\": [[{\"created_date\": \"2016-02-02 07:20:00.0\"},"
+                + "{\"picture\": [[{\"url\": \"" + secondPhoto + "\"}]]}]]}"
+                + "]").getBytes(StandardCharsets.UTF_8));
+        photoFile(archiveRoot, secondPhoto);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of());
+
+        String html = Files.readString(outputHtmlFile);
+        assertEquals(2, countOccurrences(html, "class=\"mark-uploaded\""),
+                "two workout groups (one with 2 photos, one with 1) must each get exactly one control, proving per-workout not per-photo granularity");
+    }
+
+    @Test
+    void generatedFileEmbedsExplicitThemeOverrideRulesMirroringTheDefaults(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of());
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains(":root[data-theme=\"light\"]{--bg:#f8f9fa;--card-bg:#fff;--border:#dee2e6;--text:#212529;--muted:#6c757d;--link:#0d6efd;--uploaded-bg:#e0f0e0}"),
+                "the light override must mirror the default :root values exactly");
+        assertTrue(html.contains(":root[data-theme=\"dark\"]{--bg:#1a1d20;--card-bg:#25292d;--border:#495057;--text:#dee2e6;--muted:#adb5bd;--link:#6ea8fe;--uploaded-bg:#152015}"),
+                "the dark override must mirror the prefers-color-scheme dark values exactly");
+    }
+
+    @Test
+    void themeReadScriptRunsInHeadBeforeBodyForNoFlashOfWrongMode(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of());
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains("localStorage.getItem('theme')"), "must read the app's explicit theme choice");
+        assertTrue(html.contains("setAttribute('data-theme',t)"), "must apply the choice via data-theme");
+        int scriptIndex = html.indexOf("localStorage.getItem('theme')");
+        int headEnd = html.indexOf("</head>");
+        int bodyStart = html.indexOf("<body>");
+        assertTrue(scriptIndex > 0 && scriptIndex < headEnd, "the theme script must run inside <head>, before it closes");
+        assertTrue(headEnd < bodyStart, "sanity check: head must close before body opens");
+    }
+
+    private int countOccurrences(String text, String needle) {
+        int count = 0;
+        int index = 0;
+        while ((index = text.indexOf(needle, index)) != -1) {
+            count++;
+            index += needle.length();
+        }
+        return count;
+    }
+
+    /** Mirrors {@code PhotoReportGenerator.escape}: attribute-escapes for the assertion's expected value. */
+    private String escapeForAssertion(String text) {
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     @Test

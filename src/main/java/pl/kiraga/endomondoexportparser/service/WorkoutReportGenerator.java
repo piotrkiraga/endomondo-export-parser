@@ -39,6 +39,17 @@ public class WorkoutReportGenerator {
 
     private static final String WORKOUTS_DIR = "Workouts";
 
+    /**
+     * Runs before {@code <body>} so the right mode is set before first paint (a later
+     * script would flash the wrong colors first). Reads the app's own explicit choice —
+     * best-effort: {@code localStorage} can throw under {@code file://} in some browsers,
+     * hence the {@code try/catch}. Duplicated in {@link PhotoReportGenerator}, not
+     * shared — see reports-follow-explicit-theme's design.md.
+     */
+    private static final String THEME_SCRIPT = "<script>try{var t=localStorage.getItem('theme');"
+            + "if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}"
+            + "}catch(e){}</script>";
+
     private final MigrationPlanner planner;
     private final WorkoutResolver resolver;
     private final OldBikeGearResolver oldBikeGearResolver;
@@ -144,7 +155,9 @@ public class WorkoutReportGenerator {
 
         html.append("<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"UTF-8\">")
                 .append("<title>Endomondo workout report</title>")
-                .append("<style>").append(ReportStylesUtil.CSS).append("</style></head><body>\n")
+                .append("<style>").append(ReportStylesUtil.CSS).append("</style>")
+                .append(THEME_SCRIPT)
+                .append("</head><body>\n")
                 .append("<h1>Endomondo workout report</h1>\n")
                 .append("<p class=\"summary\">")
                 .append(report.count(PlannedAction.UPLOAD_TCX)).append(" track upload(s), ")

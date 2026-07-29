@@ -25,10 +25,15 @@ sends it — so migrating means clicking through your history, not trusting a bu
 - **Hands photos out geotagged and browsable.** Every photo referenced by a workout is
   grouped, stamped with GPS coordinates in its EXIF (from the photo's own point or the
   workout's route, whichever is available), and written into a single click-to-enlarge
-  HTML report — openable straight from disk, no server required, and it follows your
-  OS/browser dark-mode preference even then. Photos not referenced by any workout show up
-  too, as real thumbnails rather than a bare path list. Once a workout is migrated, its
-  entry links straight to the activity on Strava.
+  HTML report — openable straight from disk, no server required. It follows your
+  OS/browser dark-mode preference offline, and your explicit in-app light/dark choice
+  when opened through the running application instead. Each photo has a one-click
+  "copy path" button for pasting straight into Strava's manual attach dialog, and each
+  workout can be marked as uploaded — remembered in the browser across sessions — to
+  track progress through a long list. Photos not referenced by any workout show up too,
+  as real thumbnails rather than a bare path list. Once a workout is migrated, its entry
+  links straight to the activity on Strava, opening in a new tab so the report stays
+  where you left it.
 - **Previews the migration before anything uploads.** A generated report shows, per
   workout, exactly what would be sent to Strava — resolved name, sport, description,
   dates, distance, duration, gear, and whether it uploads as a track or gets created
@@ -116,7 +121,7 @@ Java 17 or newer is required.
 ./mvnw test
 ```
 
-191 tests covering the parser against anonymized fixtures, the upload flow, localization
+469 tests covering the parser against anonymized fixtures, the upload flow, localization
 including Polish diacritics, the migration planner, EXIF geotagging, the Strava API client
 and OAuth flow (via `MockRestServiceServer` — no test touches the real network), and the
 OpenStreetMap reverse-geocoding clients. Tests that need a real Endomondo archive skip

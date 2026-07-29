@@ -319,6 +319,26 @@ public class WorkoutReportGeneratorTest {
     }
 
     @Test
+    void themeReadScriptRunsInHeadBeforeBodyForNoFlashOfWrongMode(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        Path outputHtmlFile = root.resolve("data").resolve("workout-report.html");
+        generator.generate(archiveRoot, outputHtmlFile);
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains("localStorage.getItem('theme')"), "must read the app's explicit theme choice");
+        assertTrue(html.contains("setAttribute('data-theme',t)"), "must apply the choice via data-theme");
+        int scriptIndex = html.indexOf("localStorage.getItem('theme')");
+        int headEnd = html.indexOf("</head>");
+        int bodyStart = html.indexOf("<body>");
+        assertTrue(scriptIndex > 0 && scriptIndex < headEnd, "the theme script must run inside <head>, before it closes");
+        assertTrue(headEnd < bodyStart, "sanity check: head must close before body opens");
+    }
+
+    @Test
     void generatedFileShowsSkippedWorkoutsWithTheirReason(@TempDir Path root) throws Exception {
         Path archiveRoot = root.resolve("archive");
         Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));

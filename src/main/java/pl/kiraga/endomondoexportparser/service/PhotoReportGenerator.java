@@ -43,6 +43,17 @@ public class PhotoReportGenerator {
     private static final String RESOURCES_DIR = "resources";
     private static final String GFX_DIR = "gfx";
 
+    /**
+     * Runs before {@code <body>} so the right mode is set before first paint (a later
+     * script would flash the wrong colors first). Reads the app's own explicit choice —
+     * best-effort: {@code localStorage} can throw under {@code file://} in some browsers,
+     * hence the {@code try/catch}. Duplicated in {@link WorkoutReportGenerator}, not
+     * shared — see reports-follow-explicit-theme's design.md.
+     */
+    private static final String THEME_SCRIPT = "<script>try{var t=localStorage.getItem('theme');"
+            + "if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}"
+            + "}catch(e){}</script>";
+
     private final ArchiveScanner scanner;
     private final EndomondoJsonParser parser;
     private final PhotoGeotagger geotagger;
@@ -160,11 +171,13 @@ public class PhotoReportGenerator {
 
         html.append("<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"UTF-8\">")
                 .append("<title>Endomondo photo handout</title>")
-                .append("<style>").append(ReportStylesUtil.CSS).append("</style></head><body>\n")
+                .append("<style>").append(ReportStylesUtil.CSS).append("</style>")
+                .append(THEME_SCRIPT)
+                .append("</head><body>\n")
                 .append("<h1>Endomondo photo handout</h1>\n");
 
         for (PhotoGroup group : report.groups()) {
-            html.append("<section class=\"workout\">\n")
+            html.append("<section class=\"workout\" data-basename=\"").append(escape(group.basename())).append("\">\n")
                     .append("<h2>").append(escape(group.displayName())).append("</h2>\n")
                     .append("<div class=\"meta\">")
                     .append(escape(group.startTime() == null ? "" : group.startTime()))
@@ -172,6 +185,7 @@ public class PhotoReportGenerator {
                     .append(activityLink(group.activityId()))
                     .append(" &mdash; <span class=\"basename\">archive: ").append(escape(group.basename())).append("</span>")
                     .append("</div>\n")
+                    .append(markUploadedButton())
                     .append("<div class=\"photos\">\n");
             for (CaptionedPhoto captioned : group.photos()) {
                 String href = relativeHref(reportDir, captioned.photo().copy());
@@ -179,7 +193,9 @@ public class PhotoReportGenerator {
                 html.append("<figure><img src=\"").append(href).append("\" alt=\"\" onclick=\"openLightbox(this.src)\">")
                         .append("<figcaption>")
                         .append(caption != null ? escape(caption) : "<span class=\"no-location\">no location available</span>")
-                        .append("</figcaption></figure>\n");
+                        .append("</figcaption>")
+                        .append(copyPathButton(captioned.photo().copy()))
+                        .append("</figure>\n");
             }
             html.append("</div></section>\n");
         }
@@ -198,7 +214,9 @@ public class PhotoReportGenerator {
                 copyQuietly(archiveRoot.resolve(unmatched), copy);
                 String href = relativeHref(reportDir, copy);
                 html.append("<figure><img src=\"").append(href).append("\" alt=\"\" onclick=\"openLightbox(this.src)\">")
-                        .append("<figcaption class=\"unmatched\">").append(escape(toSlashes(unmatched))).append("</figcaption></figure>\n");
+                        .append("<figcaption class=\"unmatched\">").append(escape(toSlashes(unmatched))).append("</figcaption>")
+                        .append(copyPathButton(copy))
+                        .append("</figure>\n");
             }
             html.append("</div></section>\n");
         }
@@ -206,7 +224,32 @@ public class PhotoReportGenerator {
         html.append("<div id=\"lightbox\" onclick=\"this.classList.remove('open')\"><img id=\"lightbox-img\" src=\"\" alt=\"\"></div>\n")
                 .append("<script>function openLightbox(src){")
                 .append("document.getElementById('lightbox-img').src=src;")
-                .append("document.getElementById('lightbox').classList.add('open');}</script>\n");
+                .append("document.getElementById('lightbox').classList.add('open');}")
+                .append("function copyPath(button){")
+                .append("var path=button.dataset.path;")
+                .append("var done=function(){var original=button.textContent;button.textContent='Copied!';")
+                .append("setTimeout(function(){button.textContent=original;},1500);};")
+                .append("if(navigator.clipboard&&navigator.clipboard.writeText){")
+                .append("navigator.clipboard.writeText(path).then(done,function(){legacyCopyPath(path,done);});")
+                .append("}else{legacyCopyPath(path,done);}}")
+                .append("function legacyCopyPath(text,done){")
+                .append("var textarea=document.createElement('textarea');textarea.value=text;")
+                .append("textarea.style.position='fixed';textarea.style.opacity='0';")
+                .append("document.body.appendChild(textarea);textarea.focus();textarea.select();")
+                .append("try{document.execCommand('copy');}catch(e){}")
+                .append("document.body.removeChild(textarea);done();}")
+                .append("function loadUploaded(){try{return JSON.parse(localStorage.getItem('endomondo-photo-report:uploaded'))||{};}catch(e){return {};}}")
+                .append("function applyUploadedMark(section,marked){section.classList.toggle('uploaded',marked);")
+                .append("var btn=section.querySelector('.mark-uploaded');")
+                .append("if(btn){btn.textContent=marked?'\\u2713 Uploaded':'Mark as uploaded';}}")
+                .append("function toggleUploaded(basename,button){")
+                .append("var uploaded=loadUploaded();var section=button.closest('.workout');")
+                .append("if(uploaded[basename]){delete uploaded[basename];}else{uploaded[basename]=true;}")
+                .append("localStorage.setItem('endomondo-photo-report:uploaded',JSON.stringify(uploaded));")
+                .append("applyUploadedMark(section,!!uploaded[basename]);}")
+                .append("document.querySelectorAll('[data-basename]').forEach(function(section){")
+                .append("applyUploadedMark(section,!!loadUploaded()[section.dataset.basename]);});")
+                .append("</script>\n");
 
         html.append("</body></html>\n");
 
@@ -232,8 +275,15 @@ public class PhotoReportGenerator {
 
     private String activityLink(Optional<String> activityId) {
         return activityId
-                .map(id -> "<a href=\"https://www.strava.com/activities/" + id + "\">view on Strava</a>")
+                .map(id -> "<a href=\"https://www.strava.com/activities/" + id
+                        + "\" target=\"_blank\" rel=\"noopener\">view on Strava</a>")
                 .orElse("pending migration");
+    }
+
+    /** Basename is read back from the ancestor section's {@code data-basename} at click time, not embedded as a JS literal. */
+    private String markUploadedButton() {
+        return "<button type=\"button\" class=\"mark-uploaded\" "
+                + "onclick=\"toggleUploaded(this.closest('.workout').dataset.basename,this)\">Mark as uploaded</button>\n";
     }
 
     /** Best-effort: an unmatched photo missing its thumbnail still shows its path in the caption. */
@@ -244,6 +294,17 @@ public class PhotoReportGenerator {
         } catch (IOException e) {
             // ignored, see above
         }
+    }
+
+    /**
+     * The path travels through a {@code data-path} attribute rather than a JS string
+     * literal, so a Windows absolute path's backslashes never need JS-string escaping
+     * (only the existing HTML-attribute {@link #escape} applies).
+     */
+    private String copyPathButton(Path photoCopy) {
+        String absolutePath = photoCopy.toAbsolutePath().normalize().toString();
+        return "<button type=\"button\" class=\"copy-path\" data-path=\"" + escape(absolutePath)
+                + "\" onclick=\"copyPath(this)\">Copy path</button>";
     }
 
     private String relativeHref(Path reportDir, Path target) {
