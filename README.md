@@ -1,4 +1,5 @@
 # Endomondo Export Parser
+[![CI](https://github.com/piotrkiraga/endomondo-export-parser/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/piotrkiraga/endomondo-export-parser/actions/workflows/ci.yml)
 
 A Spring Boot web application that reads the workout files from an Endomondo GDPR data
 export and migrates that archive into Strava, one reviewed workout at a time.
