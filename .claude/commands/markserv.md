@@ -22,4 +22,5 @@ Steps:
    - the browse URL (http://localhost:8642)
    - the log file path
    - that README.md isn't served this way anymore (scoped to openspec/ for startup speed)
+   **Do not open a browser tab for it.** Just report the URL in chat and let the user open it themselves.
 5. If the user reports it crashed again later, re-run from step 1 (delete the stackdump first — don't just restart).
