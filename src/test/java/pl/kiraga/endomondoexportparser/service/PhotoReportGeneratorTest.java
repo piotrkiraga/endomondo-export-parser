@@ -487,9 +487,9 @@ public class PhotoReportGeneratorTest {
         generator.generate(archiveRoot, outputHtmlFile, Map.of());
 
         String html = Files.readString(outputHtmlFile);
-        assertTrue(html.contains(":root[data-theme=\"light\"]{--bg:#f8f9fa;--card-bg:#fff;--border:#dee2e6;--text:#212529;--muted:#6c757d;--link:#0d6efd;--uploaded-bg:#e0f0e0}"),
+        assertTrue(html.contains(":root[data-theme=\"light\"]{--bg:#f8f9fa;--card-bg:#fff;--border:#dee2e6;--text:#212529;--muted:#6c757d;--link:#0d6efd;--uploaded-bg:#e0f0e0;--migrated-bg:#ede7f6;--migrated-accent:#6f42c1}"),
                 "the light override must mirror the default :root values exactly");
-        assertTrue(html.contains(":root[data-theme=\"dark\"]{--bg:#1a1d20;--card-bg:#25292d;--border:#495057;--text:#dee2e6;--muted:#adb5bd;--link:#6ea8fe;--uploaded-bg:#152015}"),
+        assertTrue(html.contains(":root[data-theme=\"dark\"]{--bg:#1a1d20;--card-bg:#25292d;--border:#495057;--text:#dee2e6;--muted:#adb5bd;--link:#6ea8fe;--uploaded-bg:#152015;--migrated-bg:#1e1526;--migrated-accent:#a98eda}"),
                 "the dark override must mirror the prefers-color-scheme dark values exactly");
     }
 
