@@ -17,20 +17,22 @@ public final class ReportStylesUtil {
     }
 
     public static final String CSS = """
-            :root{--bg:#f8f9fa;--card-bg:#fff;--border:#dee2e6;--text:#212529;--muted:#6c757d;--link:#0d6efd;--uploaded-bg:#e0f0e0}
-            @media (prefers-color-scheme:dark){:root{--bg:#1a1d20;--card-bg:#25292d;--border:#495057;--text:#dee2e6;--muted:#adb5bd;--link:#6ea8fe;--uploaded-bg:#152015}}
+            :root{--bg:#f8f9fa;--card-bg:#fff;--border:#dee2e6;--text:#212529;--muted:#6c757d;--link:#0d6efd;--uploaded-bg:#e0f0e0;--migrated-bg:#ede7f6;--migrated-accent:#6f42c1}
+            @media (prefers-color-scheme:dark){:root{--bg:#1a1d20;--card-bg:#25292d;--border:#495057;--text:#dee2e6;--muted:#adb5bd;--link:#6ea8fe;--uploaded-bg:#152015;--migrated-bg:#1e1526;--migrated-accent:#a98eda}}
             /* Higher specificity than the bare :root above/in the media query, so JS
                setting data-theme (from the app's own explicit choice) always wins;
                unset, neither rule matches and the media query above is unaffected. */
-            :root[data-theme="light"]{--bg:#f8f9fa;--card-bg:#fff;--border:#dee2e6;--text:#212529;--muted:#6c757d;--link:#0d6efd;--uploaded-bg:#e0f0e0}
-            :root[data-theme="dark"]{--bg:#1a1d20;--card-bg:#25292d;--border:#495057;--text:#dee2e6;--muted:#adb5bd;--link:#6ea8fe;--uploaded-bg:#152015}
+            :root[data-theme="light"]{--bg:#f8f9fa;--card-bg:#fff;--border:#dee2e6;--text:#212529;--muted:#6c757d;--link:#0d6efd;--uploaded-bg:#e0f0e0;--migrated-bg:#ede7f6;--migrated-accent:#6f42c1}
+            :root[data-theme="dark"]{--bg:#1a1d20;--card-bg:#25292d;--border:#495057;--text:#dee2e6;--muted:#adb5bd;--link:#6ea8fe;--uploaded-bg:#152015;--migrated-bg:#1e1526;--migrated-accent:#a98eda}
             body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0;padding:2em;background:var(--bg);color:var(--text)}
             h1{font-size:1.4em;margin:0 0 .2em}
             a{color:var(--link)}
             .summary{color:var(--muted);margin-bottom:1.5em}
             .workout{margin-bottom:1.25em;padding:1.1em 1.4em;background:var(--card-bg);border:1px solid var(--border);border-radius:.5rem;box-shadow:0 1px 2px rgba(0,0,0,.06)}
             .workout.skip{border-color:#c99a4a}
-            .workout.migrated{border-color:#2a9d5c;background-color:var(--uploaded-bg)}
+            .workout.migrated{border-color:var(--migrated-accent);background-color:var(--migrated-bg)}
+            /* Declared after .migrated on purpose: both states are independent and can
+               apply to the same card, so the later rule's background wins there. */
             .workout.uploaded{border-color:#2a9d5c;background-color:var(--uploaded-bg)}
             .workout h2{font-size:1.05em;margin:0 0 .4em}
             .meta{color:var(--muted);font-size:.85em;margin-bottom:.5em}
