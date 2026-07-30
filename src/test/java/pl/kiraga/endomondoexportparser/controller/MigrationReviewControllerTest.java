@@ -8,7 +8,9 @@ import pl.kiraga.endomondoexportparser.service.MigrationTestSupport;
 import pl.kiraga.endomondoexportparser.model.LedgerEntry;
 import pl.kiraga.endomondoexportparser.model.PlannedAction;
 import pl.kiraga.endomondoexportparser.model.ResolvedWorkout;
+import pl.kiraga.endomondoexportparser.service.MigrationExecutor;
 import pl.kiraga.endomondoexportparser.service.MigrationLedger;
+import pl.kiraga.endomondoexportparser.service.ResolvedPlanCache;
 import pl.kiraga.endomondoexportparser.service.StravaClient;
 
 import java.nio.charset.StandardCharsets;
@@ -17,6 +19,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -47,10 +50,13 @@ public class MigrationReviewControllerTest {
     private MigrationReviewController controllerFor(Path dir) {
         rig = MigrationTestSupport.build(dir, FIXED);
         server = rig.server();
+        return controllerWith(dir, rig.executor());
+    }
 
+    private MigrationReviewController controllerWith(Path dir, MigrationExecutor executor) {
         MigrationReviewController controller = new MigrationReviewController(
-                rig.executor(), rig.ledger(), rig.photoResolver(), rig.tokenStore(), rig.confirmedGearResolver(),
-                rig.oldBikeGearResolver());
+                executor, new ResolvedPlanCache(executor), rig.ledger(), rig.photoResolver(), rig.tokenStore(),
+                rig.confirmedGearResolver(), rig.oldBikeGearResolver());
         controller.setArchiveRootProperty(dir.resolve("archive").toString());
         controller.setPhotoReportOutputDirectory(dir.resolve("photo-report").toString());
         return controller;
@@ -344,6 +350,72 @@ public class MigrationReviewControllerTest {
 
         assertEquals(TRACKED_BASENAME, ((ResolvedWorkout) first.getModel().get("workout")).basename());
         assertEquals(MANUAL_BASENAME, ((ResolvedWorkout) second.getModel().get("workout")).basename());
+    }
+
+    // --- Plan caching: resolved once per archive, ledger status still read fresh ---
+
+    /** Counts {@code resolveAll} calls while leaving every other executor behaviour to the real one. */
+    private static final class CountingExecutor extends MigrationExecutor {
+
+        private final MigrationExecutor delegate;
+        private int resolveAllCalls;
+
+        private CountingExecutor(MigrationExecutor delegate) {
+            super(null, null, null, null, null);
+            this.delegate = delegate;
+        }
+
+        @Override
+        public List<ResolvedWorkout> resolveAll(Path archiveRoot) {
+            resolveAllCalls++;
+            return delegate.resolveAll(archiveRoot);
+        }
+
+    }
+
+    @Test
+    void viewingTheSameArchiveTwiceResolvesThePlanOnlyOnce(@TempDir Path dir) throws Exception {
+        archiveWithTwoActionableWorkouts(dir);
+        rig = MigrationTestSupport.build(dir, FIXED);
+        server = rig.server();
+        CountingExecutor executor = new CountingExecutor(rig.executor());
+        MigrationReviewController controller = controllerWith(dir, executor);
+
+        controller.view(new ModelAndView(), 0);
+        controller.view(new ModelAndView(), 1);
+        controller.start(new ModelAndView());
+
+        assertEquals(1, executor.resolveAllCalls);
+    }
+
+    @Test
+    void aSkipMadeThroughThePageShowsOnTheNextViewOfThatWorkout(@TempDir Path dir) throws Exception {
+        archiveWithTwoActionableWorkouts(dir);
+        MigrationReviewController controller = controllerFor(dir);
+        controller.view(new ModelAndView(), 0);
+
+        controller.skip(new ModelAndView(), 0);
+        ModelAndView mav = controller.view(new ModelAndView(), 0);
+
+        server.verify();
+        assertEquals(Boolean.TRUE, mav.getModel().get("isSkipped"));
+        assertEquals(Boolean.TRUE, mav.getModel().get("hasDecision"));
+    }
+
+    @Test
+    void aMigrateMadeThroughThePageMovesTheNextStartRedirectOn(@TempDir Path dir) throws Exception {
+        archiveWithTwoActionableWorkouts(dir);
+        MigrationReviewController controller = controllerFor(dir);
+        assertEquals("redirect:/migration/review/0", controller.start(new ModelAndView()).getViewName());
+
+        server.expect(requestTo("https://www.strava.com/api/v3/uploads"))
+                .andRespond(withSuccess("{\"id\": 555, \"activity_id\": 777}", APPLICATION_JSON));
+        server.expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andRespond(withSuccess("{\"id\": 777}", APPLICATION_JSON));
+        controller.migrate(new ModelAndView(), 0);
+
+        server.verify();
+        assertEquals("redirect:/migration/review/1", controller.start(new ModelAndView()).getViewName());
     }
 
 }
