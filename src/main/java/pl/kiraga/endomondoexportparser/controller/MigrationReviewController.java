@@ -20,6 +20,7 @@ import pl.kiraga.endomondoexportparser.service.ConfirmedGearResolver;
 import pl.kiraga.endomondoexportparser.service.MigrationExecutor;
 import pl.kiraga.endomondoexportparser.service.MigrationLedger;
 import pl.kiraga.endomondoexportparser.service.OldBikeGearResolver;
+import pl.kiraga.endomondoexportparser.service.ResolvedPlanCache;
 import pl.kiraga.endomondoexportparser.service.StravaTokenStore;
 import pl.kiraga.endomondoexportparser.service.WorkoutPhotoResolver;
 import pl.kiraga.endomondoexportparser.util.DisplayTimeUtil;
@@ -29,15 +30,17 @@ import pl.kiraga.endomondoexportparser.util.DisplayTimeUtil;
  * user 2026-07-21: every migration is a deliberate, reviewed click, never a bulk
  * unattended run — {@link MigrationExecutor#run} exists but this page never calls it,
  * only {@link MigrationExecutor#migrateOne}. Workouts are addressed by their position
- * in the plan's actionable (non-planner-skipped) order, recomputed on every request
- * rather than held in server-side session state, so the page survives a restart and a
- * bookmarked/shared URL always means the same workout.
+ * in the plan's actionable (non-planner-skipped) order, resolved from the archive via
+ * {@link ResolvedPlanCache} rather than held in server-side session state, so the page
+ * survives a restart and a bookmarked/shared URL always means the same workout. Every
+ * ledger-derived status shown here is still read fresh on each request.
  */
 @Controller
 @RequestMapping("/migration/review")
 public class MigrationReviewController extends BaseController {
 
     private final MigrationExecutor executor;
+    private final ResolvedPlanCache resolvedPlanCache;
     private final MigrationLedger ledger;
     private final WorkoutPhotoResolver photoResolver;
     private final StravaTokenStore stravaTokenStore;
@@ -50,10 +53,12 @@ public class MigrationReviewController extends BaseController {
     @Value("${endomondo.photo-report.output-directory}")
     private String photoReportOutputDirectory;
 
-    public MigrationReviewController(MigrationExecutor executor, MigrationLedger ledger,
+    public MigrationReviewController(MigrationExecutor executor, ResolvedPlanCache resolvedPlanCache,
+                                      MigrationLedger ledger,
                                       WorkoutPhotoResolver photoResolver, StravaTokenStore stravaTokenStore,
                                       ConfirmedGearResolver confirmedGearResolver, OldBikeGearResolver oldBikeGearResolver) {
         this.executor = executor;
+        this.resolvedPlanCache = resolvedPlanCache;
         this.ledger = ledger;
         this.photoResolver = photoResolver;
         this.stravaTokenStore = stravaTokenStore;
@@ -219,7 +224,7 @@ public class MigrationReviewController extends BaseController {
     }
 
     private List<ResolvedWorkout> actionable(Path archiveRoot) {
-        return executor.resolveAll(archiveRoot).stream()
+        return resolvedPlanCache.get(archiveRoot).stream()
                 .filter(workout -> workout.action() != PlannedAction.SKIP)
                 .toList();
     }
