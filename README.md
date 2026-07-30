@@ -33,7 +33,9 @@ sends it — so migrating means clicking through your history, not trusting a bu
   track progress through a long list. Photos not referenced by any workout show up too,
   as real thumbnails rather than a bare path list. Once a workout is migrated, its entry
   links straight to the activity on Strava, opening in a new tab so the report stays
-  where you left it.
+  where you left it. Migrated and not-yet-migrated cards are also distinguished visually
+  (a green accent plus a checkmark/circle icon), shared identically with the workout
+  report below, so status reads at a glance without reading text.
 - **Previews the migration before anything uploads.** A generated report shows, per
   workout, exactly what would be sent to Strava — resolved name, sport, description,
   dates, distance, duration, gear, and whether it uploads as a track or gets created

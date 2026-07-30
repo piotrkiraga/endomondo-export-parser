@@ -194,8 +194,10 @@ public class WorkoutReportGenerator {
 
         String actionLabel = entry.action() == PlannedAction.UPLOAD_TCX ? "Upload TCX" : "Create manual";
         String actionClass = entry.action() == PlannedAction.UPLOAD_TCX ? "upload" : "manual";
+        ActivityLink activityLink = activityLink(entry.activityId());
 
-        StringBuilder section = new StringBuilder("<section class=\"workout\">\n")
+        StringBuilder section = new StringBuilder("<section class=\"workout")
+                .append(activityLink.migrated() ? " migrated" : "").append("\">\n")
                 .append("<h2><span class=\"action ").append(actionClass).append("\">").append(actionLabel)
                 .append("</span> ").append(escape(entry.stravaName())).append("</h2>\n")
                 .append("<div class=\"detail-list\">\n")
@@ -208,7 +210,7 @@ public class WorkoutReportGenerator {
             section.append(detailRow("Duration", formatDuration(entry.durationS())));
         }
         section.append("</div>\n")
-                .append("<div class=\"meta\">").append(activityLink(entry.activityId()))
+                .append("<div class=\"meta\">").append(activityLink.html())
                 .append(" &mdash; <span class=\"basename\">Source: ").append(escape(entry.sourceFiles())).append("</span>");
         if (entry.pictureCount() > 0) {
             section.append(" &mdash; ").append(entry.pictureCount()).append(" photo(s)");
@@ -245,10 +247,19 @@ public class WorkoutReportGenerator {
         return "";
     }
 
+    /**
+     * The rendered link/text and the card's migrated state come from this one activity id
+     * check, so the icon and the section's {@code migrated} class can never disagree.
+     */
+    private record ActivityLink(String html, boolean migrated) {
+    }
+
     /** Mirrors {@link PhotoReportGenerator}'s own activity link text/format exactly. */
-    private String activityLink(Long activityId) {
-        return activityId == null ? "pending migration"
-                : "<a href=\"https://www.strava.com/activities/" + activityId + "\">view on Strava</a>";
+    private ActivityLink activityLink(Long activityId) {
+        return activityId == null
+                ? new ActivityLink("○ pending migration", false)
+                : new ActivityLink("✓ <a href=\"https://www.strava.com/activities/" + activityId
+                        + "\">view on Strava</a>", true);
     }
 
     private static String formatDuration(Integer seconds) {

@@ -30,6 +30,7 @@ public final class ReportStylesUtil {
             .summary{color:var(--muted);margin-bottom:1.5em}
             .workout{margin-bottom:1.25em;padding:1.1em 1.4em;background:var(--card-bg);border:1px solid var(--border);border-radius:.5rem;box-shadow:0 1px 2px rgba(0,0,0,.06)}
             .workout.skip{border-color:#c99a4a}
+            .workout.migrated{border-color:#2a9d5c;background-color:var(--uploaded-bg)}
             .workout.uploaded{border-color:#2a9d5c;background-color:var(--uploaded-bg)}
             .workout h2{font-size:1.05em;margin:0 0 .4em}
             .meta{color:var(--muted);font-size:.85em;margin-bottom:.5em}

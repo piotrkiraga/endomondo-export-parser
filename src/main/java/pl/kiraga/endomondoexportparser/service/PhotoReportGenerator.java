@@ -177,12 +177,14 @@ public class PhotoReportGenerator {
                 .append("<h1>Endomondo photo handout</h1>\n");
 
         for (PhotoGroup group : report.groups()) {
-            html.append("<section class=\"workout\" data-basename=\"").append(escape(group.basename())).append("\">\n")
+            ActivityLink activityLink = activityLink(group.activityId());
+            html.append("<section class=\"workout").append(activityLink.migrated() ? " migrated" : "")
+                    .append("\" data-basename=\"").append(escape(group.basename())).append("\">\n")
                     .append("<h2>").append(escape(group.displayName())).append("</h2>\n")
                     .append("<div class=\"meta\">")
                     .append(escape(group.startTime() == null ? "" : group.startTime()))
                     .append(" &mdash; ")
-                    .append(activityLink(group.activityId()))
+                    .append(activityLink.html())
                     .append(" &mdash; <span class=\"basename\">archive: ").append(escape(group.basename())).append("</span>")
                     .append("</div>\n")
                     .append(markUploadedButton())
@@ -273,11 +275,18 @@ public class PhotoReportGenerator {
         return null;
     }
 
-    private String activityLink(Optional<String> activityId) {
+    /**
+     * The rendered link/text and the card's migrated state come from this one activity id
+     * check, so the icon and the section's {@code migrated} class can never disagree.
+     */
+    private record ActivityLink(String html, boolean migrated) {
+    }
+
+    private ActivityLink activityLink(Optional<String> activityId) {
         return activityId
-                .map(id -> "<a href=\"https://www.strava.com/activities/" + id
-                        + "\" target=\"_blank\" rel=\"noopener\">view on Strava</a>")
-                .orElse("pending migration");
+                .map(id -> new ActivityLink("✓ <a href=\"https://www.strava.com/activities/" + id
+                        + "\" target=\"_blank\" rel=\"noopener\">view on Strava</a>", true))
+                .orElseGet(() -> new ActivityLink("○ pending migration", false));
     }
 
     /** Basename is read back from the ancestor section's {@code data-basename} at click time, not embedded as a JS literal. */

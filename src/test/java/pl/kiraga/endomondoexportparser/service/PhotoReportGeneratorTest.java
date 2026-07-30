@@ -149,6 +149,44 @@ public class PhotoReportGeneratorTest {
                 "the Strava link must open in a new tab without navigating the report away");
     }
 
+    @Test
+    void migratedWorkoutCardCarriesTheMigratedClassAndCheckmark(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of("2015-04-11 11_38_17.0", "998877"));
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains("<section class=\"workout migrated\" data-basename=\"2015-04-11 11_38_17.0\">"),
+                "the card must carry the migrated accent class, same one the workout report uses");
+        assertTrue(html.contains("✓ <a href=\"https://www.strava.com/activities/998877\""),
+                "the checkmark must precede the existing Strava link");
+        assertTrue(html.contains(".workout.migrated{"), "the accent must be styled inline, so the file still works offline");
+    }
+
+    @Test
+    void notYetMigratedWorkoutCardKeepsTheDefaultLookAndGetsTheOpenCircle(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-with-pictures.json", "2015-04-11 11_38_17.0");
+        writeTrack(workouts, "2015-04-11 11_38_17.0");
+        photoFile(archiveRoot, PHOTO_1);
+        photoFile(archiveRoot, PHOTO_2);
+
+        Path outputHtmlFile = root.resolve("data").resolve("photo-report.html");
+        generator.generate(archiveRoot, outputHtmlFile, Map.of());
+
+        String html = Files.readString(outputHtmlFile);
+        assertTrue(html.contains("<section class=\"workout\" data-basename=\"2015-04-11 11_38_17.0\">"));
+        assertFalse(html.contains("class=\"workout migrated\""), "no activity id means no migrated accent");
+        assertTrue(html.contains("○ pending migration"));
+    }
+
     // --- LocationDto resolution surfaced in the report ---
 
     @Test
