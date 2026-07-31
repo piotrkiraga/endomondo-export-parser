@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import pl.kiraga.endomondoexportparser.dto.strava.StravaDictionarySnapshotDto;
 import pl.kiraga.endomondoexportparser.dto.strava.StravaTokensDto;
 import pl.kiraga.endomondoexportparser.model.FeatureKind;
 import pl.kiraga.endomondoexportparser.model.NearbyFeature;
@@ -69,8 +70,14 @@ public class WorkoutReportGeneratorTest {
         return new WorkoutReportGenerator(
                 new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
                 new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), placeLookup),
-                new OldBikeGearResolver(), new ConfirmedGearResolver(stravaClient, emptyDictionary(stravaClient)),
+                new OldBikeGearResolver(), confirmedGearResolver(stravaClient, emptyDictionary(stravaClient),
+                        sharedTemp.resolve("never-read-gear-cache.json")),
                 tokenStore, new RequestThrottleUtil(0));
+    }
+
+    private ConfirmedGearResolver confirmedGearResolver(StravaClient stravaClient, StravaDictionaryService dictionary,
+                                                         Path gearCacheFile) {
+        return new ConfirmedGearResolver(stravaClient, dictionary, new ConfirmedGearCache(gearCacheFile));
     }
 
     private WorkoutReportGenerator generatorWithOldBikeGear(String gearId, String cutoffDate) {
@@ -83,12 +90,14 @@ public class WorkoutReportGeneratorTest {
         return new WorkoutReportGenerator(
                 new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
                 new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), NO_PLACES),
-                oldBikeGearResolver, new ConfirmedGearResolver(stravaClient, emptyDictionary(stravaClient)),
+                oldBikeGearResolver, confirmedGearResolver(stravaClient, emptyDictionary(stravaClient),
+                        sharedTemp.resolve("never-read-gear-cache.json")),
                 tokenStore, new RequestThrottleUtil(0));
     }
 
     /** A generator connected to Strava via a mocked network, for the confirmed-gear tests. */
-    private record ConnectedRig(WorkoutReportGenerator generator, MockRestServiceServer server) {
+    private record ConnectedRig(WorkoutReportGenerator generator, MockRestServiceServer server,
+                                 ConfirmedGearCache gearCache) {
     }
 
     private ConnectedRig connectedGenerator(Path tempDir) {
@@ -96,6 +105,11 @@ public class WorkoutReportGeneratorTest {
     }
 
     private ConnectedRig connectedGenerator(Path tempDir, OldBikeGearResolver oldBikeGearResolver) {
+        return connectedGenerator(tempDir, oldBikeGearResolver, 0);
+    }
+
+    private ConnectedRig connectedGenerator(Path tempDir, OldBikeGearResolver oldBikeGearResolver,
+                                             long throttleIntervalMillis) {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
         StravaTokenStore tokenStore = new StravaTokenStore(tempDir.resolve("tokens.json"));
@@ -104,12 +118,13 @@ public class WorkoutReportGeneratorTest {
                 millis -> { });
         StravaDictionaryService stravaDictionary = new StravaDictionaryService(stravaClient,
                 new StravaDictionaryCache(tempDir.resolve("dictionary.json")), FIXED_NOON);
+        ConfirmedGearCache gearCache = new ConfirmedGearCache(tempDir.resolve("confirmed-gear-cache.json"));
         WorkoutReportGenerator generator = new WorkoutReportGenerator(
                 new MigrationPlanner(new ArchiveScanner(), new EndomondoJsonParser()),
                 new WorkoutResolver(new ArchiveScanner(), new EndomondoJsonParser(), NO_PLACES),
-                oldBikeGearResolver, new ConfirmedGearResolver(stravaClient, stravaDictionary), tokenStore,
-                new RequestThrottleUtil(0));
-        return new ConnectedRig(generator, server);
+                oldBikeGearResolver, new ConfirmedGearResolver(stravaClient, stravaDictionary, gearCache), tokenStore,
+                new RequestThrottleUtil(throttleIntervalMillis));
+        return new ConnectedRig(generator, server, gearCache);
     }
 
     private void copyFixture(Path workoutsDirectory, String fixture, String basename) throws Exception {
@@ -504,6 +519,78 @@ public class WorkoutReportGeneratorTest {
 
         assertEquals(2, report.entries().size());
         report.entries().forEach(entry -> assertEquals("Trek Checkpoint (b18387038)", entry.plannedGearDisplay()));
+        rig.server().verify();
+    }
+
+    // --- Confirmed gear served from ConfirmedGearCache ---
+
+    /** The dictionary supplies the gear's name, so a cache hit needs no network call at all. */
+    private void saveGearName(Path tempDir, String gearId, String name) {
+        new StravaDictionaryCache(tempDir.resolve("dictionary.json")).save(new StravaDictionarySnapshotDto(
+                555L, "Piotr", "Kiraga", null, null, null, null, Map.of(gearId, name), "2026-07-27T12:00:00Z"));
+    }
+
+    @Test
+    void alreadyConfirmedGearIsShownWithoutAnyStravaCall(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        ConnectedRig rig = connectedGenerator(root);
+        rig.gearCache().put(777L, "b18387038");
+        saveGearName(root, "b18387038", "Trek Checkpoint");
+        // No server.expect(...) at all: gear confirmed on an earlier run must not be re-read.
+
+        WorkoutReportEntry entry = rig.generator()
+                .build(archiveRoot, Map.of("2011-09-10 12_58_59.0", 777L)).entries().get(0);
+
+        assertEquals("Trek Checkpoint (b18387038)", entry.confirmedGearDisplay());
+        rig.server().verify();
+    }
+
+    @Test
+    void regeneratingTheReportReusesTheGearConfirmedByTheFirstGeneration(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+
+        ConnectedRig rig = connectedGenerator(root);
+        saveGearName(root, "b18387038", "Trek Checkpoint");
+        // Exactly one /activities expectation: the second generation reading it again would fail verify().
+        rig.server().expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andRespond(withSuccess("{\"id\": 777, \"gear_id\": \"b18387038\"}", APPLICATION_JSON));
+        Map<String, Long> activityIds = Map.of("2011-09-10 12_58_59.0", 777L);
+        rig.generator().build(archiveRoot, activityIds);
+
+        WorkoutReportEntry entry = rig.generator().build(archiveRoot, activityIds).entries().get(0);
+
+        assertEquals("Trek Checkpoint (b18387038)", entry.confirmedGearDisplay());
+        rig.server().verify();
+    }
+
+    @Test
+    void aCachedConfirmedGearSkipsTheThrottleWaitToo(@TempDir Path root) throws Exception {
+        Path archiveRoot = root.resolve("archive");
+        Path workouts = Files.createDirectories(archiveRoot.resolve("Workouts"));
+        copyFixture(workouts, "workout-tracked.json", "2011-09-10 12_58_59.0");
+        writeTrack(workouts, "2011-09-10 12_58_59.0");
+        copyFixture(workouts, "workout-tracked.json", "2011-09-11 12_58_59.0");
+        writeTrack(workouts, "2011-09-11 12_58_59.0");
+
+        ConnectedRig rig = connectedGenerator(root, new OldBikeGearResolver(), 5000);
+        rig.gearCache().put(777L, "");
+        rig.gearCache().put(778L, "");
+
+        long startedAt = System.currentTimeMillis();
+        WorkoutReport report = rig.generator().build(archiveRoot,
+                Map.of("2011-09-10 12_58_59.0", 777L, "2011-09-11 12_58_59.0", 778L));
+        long elapsedMillis = System.currentTimeMillis() - startedAt;
+
+        report.entries().forEach(entry -> assertEquals("", entry.confirmedGearDisplay()));
+        assertTrue(elapsedMillis < 2000,
+                "a cache hit makes no call, so it must not pay the throttle's pacing wait; took " + elapsedMillis + "ms");
         rig.server().verify();
     }
 

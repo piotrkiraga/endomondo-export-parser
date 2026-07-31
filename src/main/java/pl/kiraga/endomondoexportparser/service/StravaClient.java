@@ -52,6 +52,8 @@ public class StravaClient {
 
     private static final Duration REFRESH_BUFFER = Duration.ofMinutes(5);
 
+    private static final Logger LOG = LoggerFactory.getLogger(StravaClient.class);
+
     /** Dev-mode traffic log — enable with endomondo.strava.log-traffic=true, see the .example file. */
     private static final Logger TRAFFIC_LOG = LoggerFactory.getLogger(
             "pl.kiraga.endomondoexportparser.service.StravaTraffic");
@@ -370,7 +372,10 @@ public class StravaClient {
         try {
             return call.get();
         } catch (HttpClientErrorException.TooManyRequests e) {
-            sleeper.accept(waitUntilNextQuarterHourUtc().toMillis());
+            Duration wait = waitUntilNextQuarterHourUtc();
+            LOG.warn("Strava rate limit hit (429); waiting {}s for the next rate-limit window before retrying",
+                    wait.toSeconds());
+            sleeper.accept(wait.toMillis());
             try {
                 return call.get();
             } catch (HttpClientErrorException.TooManyRequests stillLimited) {

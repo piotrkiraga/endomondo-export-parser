@@ -56,7 +56,8 @@ public final class MigrationTestSupport {
         WorkoutPhotoResolver photoResolver = new WorkoutPhotoResolver(new EndomondoJsonParser(), new PhotoGeotagger());
         StravaDictionaryService stravaDictionary = new StravaDictionaryService(stravaClient,
                 new StravaDictionaryCache(dir.resolve("dictionary.json")), clock);
-        ConfirmedGearResolver confirmedGearResolver = new ConfirmedGearResolver(stravaClient, stravaDictionary);
+        ConfirmedGearResolver confirmedGearResolver = new ConfirmedGearResolver(stravaClient, stravaDictionary,
+                new ConfirmedGearCache(dir.resolve("confirmed-gear-cache.json")));
         AppStatusResolver appStatusResolver = new AppStatusResolver(new ArchiveScanner(), ledger,
                 new LocationCache(dir.resolve("location-cache.json")));
 

@@ -25,7 +25,7 @@ public class ConfirmedGearResolverTest {
 
     private static final Clock FIXED = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC);
 
-    private record Rig(ConfirmedGearResolver resolver, MockRestServiceServer server) {
+    private record Rig(ConfirmedGearResolver resolver, MockRestServiceServer server, ConfirmedGearCache gearCache) {
     }
 
     private Rig rigFor(Path dir) {
@@ -36,7 +36,8 @@ public class ConfirmedGearResolverTest {
         StravaClient stravaClient = new StravaClient(builder, tokenStore, "client-id", "client-secret", FIXED, millis -> { });
         StravaDictionaryCache cache = new StravaDictionaryCache(dir.resolve("dictionary.json"));
         StravaDictionaryService dictionary = new StravaDictionaryService(stravaClient, cache, FIXED);
-        return new Rig(new ConfirmedGearResolver(stravaClient, dictionary), server);
+        ConfirmedGearCache gearCache = new ConfirmedGearCache(dir.resolve("confirmed-gear-cache.json"));
+        return new Rig(new ConfirmedGearResolver(stravaClient, dictionary, gearCache), server, gearCache);
     }
 
     @Test
@@ -74,6 +75,61 @@ public class ConfirmedGearResolverTest {
         String display = rig.resolver().display("unknown");
 
         assertEquals("unknown", display);
+    }
+
+    // --- Confirmed gear cache ---
+
+    @Test
+    void aLiveLookupWritesItsResultThroughToTheCache(@TempDir Path dir) {
+        Rig rig = rigFor(dir);
+        rig.server().expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andRespond(withSuccess("{\"id\": 777, \"gear_id\": \"b18387038\"}", APPLICATION_JSON));
+
+        assertEquals("b18387038", rig.resolver().gearIdFor(777L).orElseThrow());
+
+        assertEquals("b18387038", rig.gearCache().get(777L).orElseThrow());
+        rig.server().verify();
+    }
+
+    @Test
+    void aFailedLiveLookupWritesNothingToTheCache(@TempDir Path dir) {
+        Rig rig = rigFor(dir);
+        rig.server().expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andRespond(withStatus(NOT_FOUND));
+
+        assertTrue(rig.resolver().gearIdFor(777L).isEmpty());
+
+        assertTrue(rig.gearCache().get(777L).isEmpty());
+    }
+
+    @Test
+    void gearIdForStaysLiveEvenWhenTheCacheHasAValue(@TempDir Path dir) {
+        Rig rig = rigFor(dir);
+        rig.gearCache().put(777L, "b18387038");
+        rig.server().expect(requestTo("https://www.strava.com/api/v3/activities/777"))
+                .andRespond(withSuccess("{\"id\": 777, \"gear_id\": \"b18305600\"}", APPLICATION_JSON));
+
+        assertEquals("b18305600", rig.resolver().gearIdFor(777L).orElseThrow(),
+                "the review page must see a Strava-side correction, never the stale cached value");
+        rig.server().verify();
+    }
+
+    @Test
+    void cachedGearIdForReadsTheCacheWithoutAnyNetworkCall(@TempDir Path dir) {
+        Rig rig = rigFor(dir);
+        rig.gearCache().put(777L, "b18387038");
+        // No server.expect(...) at all: a cache hit must not call Strava.
+
+        assertEquals("b18387038", rig.resolver().cachedGearIdFor(777L).orElseThrow());
+        rig.server().verify();
+    }
+
+    @Test
+    void cachedGearIdForIsEmptyOnAMissAndStillMakesNoCall(@TempDir Path dir) {
+        Rig rig = rigFor(dir);
+
+        assertTrue(rig.resolver().cachedGearIdFor(777L).isEmpty());
+        rig.server().verify();
     }
 
 }
