@@ -59,8 +59,9 @@ sends it — so migrating means clicking through your history, not trusting a bu
   gear name shown elsewhere in the app reads from this cache first, instead of one live
   lookup per gear id.
 - **Shows an at-a-glance dashboard on the home page.** Archive size, migration ledger
-  breakdown (done/failed/skipped/pending), and cached-location count — all read from
-  local data already written by the features above, no extra Strava calls.
+  breakdown (done/failed/skipped/pending), and cached-location count (linking to a page
+  listing every resolved coordinate) — all read from local data already written by the
+  features above, no extra Strava calls.
 - **Migrates one workout at a time, by hand.** A review screen shows each workout's real
   name, sport, description, and photo thumbnails (geotagged copies, each with a
   click-to-copy local path, ready to attach manually — the one thing the API can't do),

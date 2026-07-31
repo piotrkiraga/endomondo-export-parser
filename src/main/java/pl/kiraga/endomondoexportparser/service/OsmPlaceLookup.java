@@ -37,7 +37,8 @@ public class OsmPlaceLookup implements PlaceLookup {
         }
 
         NearbyFeature feature = overpassClient.nearestNotableFeature(latitude, longitude).orElse(null);
-        PlaceDescription place = new PlaceDescription(locality.get().city(), locality.get().suburb(), feature);
+        PlaceDescription place = new PlaceDescription(
+                locality.get().city(), locality.get().suburb(), feature, locality.get().countryCode());
 
         cache.put(latitude, longitude, place);
         return Optional.of(place);

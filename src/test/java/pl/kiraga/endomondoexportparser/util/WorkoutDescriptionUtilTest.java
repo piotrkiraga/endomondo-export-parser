@@ -20,7 +20,8 @@ public class WorkoutDescriptionUtilTest {
 
     @Test
     void stampGainsALeadingSentenceAboutThePlace() {
-        PlaceDescription place = new PlaceDescription("Kraków", null, new NearbyFeature("Wawel Castle", FeatureKind.HISTORIC, 80));
+        PlaceDescription place =
+                new PlaceDescription("Kraków", null, new NearbyFeature("Wawel Castle", FeatureKind.HISTORIC, 80), null);
         assertEquals("Recorded near Wawel Castle in Kraków.\n\n" + STAMP,
                 WorkoutDescriptionUtil.build("2015-04-11", place));
     }

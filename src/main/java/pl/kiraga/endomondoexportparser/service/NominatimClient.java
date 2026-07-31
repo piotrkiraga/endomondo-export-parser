@@ -70,8 +70,16 @@ public class NominatimClient {
         }
 
         String suburb = firstNonBlank(address, "suburb", "neighbourhood", "city_district");
-        return Optional.of(new Locality(city, suburb));
+        return Optional.of(new Locality(city, suburb, countryCode(address)));
 
+    }
+
+    private String countryCode(JsonNode address) {
+        JsonNode value = address.get("country_code");
+        if (value == null || !value.isTextual() || value.asString().isBlank()) {
+            return null;
+        }
+        return value.asString().toUpperCase(Locale.ROOT);
     }
 
     private String firstNonBlank(JsonNode node, String... fields) {

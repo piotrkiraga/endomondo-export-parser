@@ -26,7 +26,8 @@ public final class MigrationTestSupport {
     public record Rig(MockRestServiceServer server, MigrationExecutor executor, MigrationLedger ledger,
                        WorkoutPhotoResolver photoResolver, StravaTokenStore tokenStore, StravaClient stravaClient,
                        ConfirmedGearResolver confirmedGearResolver, StravaDictionaryService stravaDictionary,
-                       OldBikeGearResolver oldBikeGearResolver, AppStatusResolver appStatusResolver) {
+                       OldBikeGearResolver oldBikeGearResolver, AppStatusResolver appStatusResolver,
+                       LocationCache locationCache) {
     }
 
     /** As {@link #build(Path, Clock, boolean)}, connected (a token is already saved). */
@@ -58,11 +59,11 @@ public final class MigrationTestSupport {
                 new StravaDictionaryCache(dir.resolve("dictionary.json")), clock);
         ConfirmedGearResolver confirmedGearResolver = new ConfirmedGearResolver(stravaClient, stravaDictionary,
                 new ConfirmedGearCache(dir.resolve("confirmed-gear-cache.json")));
-        AppStatusResolver appStatusResolver = new AppStatusResolver(new ArchiveScanner(), ledger,
-                new LocationCache(dir.resolve("location-cache.json")));
+        LocationCache locationCache = new LocationCache(dir.resolve("location-cache.json"));
+        AppStatusResolver appStatusResolver = new AppStatusResolver(new ArchiveScanner(), ledger, locationCache);
 
         return new Rig(server, executor, ledger, photoResolver, tokenStore, stravaClient, confirmedGearResolver,
-                stravaDictionary, oldBikeGearResolver, appStatusResolver);
+                stravaDictionary, oldBikeGearResolver, appStatusResolver, locationCache);
 
     }
 

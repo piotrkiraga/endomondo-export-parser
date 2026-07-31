@@ -42,7 +42,7 @@ public class PageRenderSmokeTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "/home", "/upload",
+            "/home", "/upload", "/location-cache",
             "/migration/photo-report", "/migration/workout-report",
             "/migration/review"
     })
