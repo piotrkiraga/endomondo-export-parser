@@ -16,7 +16,9 @@ sends it — so migrating means clicking through your history, not trusting a bu
   style. The parser normalizes that shape before binding it.
 - **Shows a workout summary** after upload — name, sport, start time, duration, distance,
   calories, speed and altitude ranges, and how many GPS points carry a full location.
-- **Speaks English and Polish**, switchable at runtime.
+- **Speaks English and Polish**, following your browser's language preference by default,
+  with English/Polski links in the nav bar that override it and remember the choice per
+  browser.
 - **Follows your system light/dark preference**, with a moon/sun toggle that overrides it
   and remembers the choice per browser.
 - **Plans a full Strava migration offline.** Point it at an archive directory and it pairs

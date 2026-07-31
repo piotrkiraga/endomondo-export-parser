@@ -27,10 +27,14 @@
             </ul>
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link" href="?lang=en"><span th:text="#{language.en}">English</span></a>
+                    <a class="nav-link" th:classappend="${#locale.language == 'en'} ? 'active fw-bold' : ''"
+                       th:attr="aria-current=${#locale.language == 'en'} ? 'true' : null"
+                       href="?lang=en"><span th:text="#{language.en}">English</span></a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="?lang=pl"><span th:text="#{language.pl}">Polski</span></a>
+                    <a class="nav-link" th:classappend="${#locale.language == 'pl'} ? 'active fw-bold' : ''"
+                       th:attr="aria-current=${#locale.language == 'pl'} ? 'true' : null"
+                       href="?lang=pl"><span th:text="#{language.pl}">Polski</span></a>
                 </li>
                 <li class="nav-item">
                     <button id="theme-toggle" type="button" class="nav-link d-flex align-items-center"
