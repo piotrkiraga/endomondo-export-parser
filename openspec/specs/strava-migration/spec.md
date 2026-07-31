@@ -2,7 +2,6 @@
 
 ## Purpose
 Defines how workouts from an Endomondo export are migrated to Strava: uploading tracked workouts as TCX files versus creating manual activities, applying names/sport types/descriptions, best-effort gear correction, location-based name enrichment, rate-limit handling and resumability, dry-run planning, and the requirement that migration only ever runs from an explicit user action.
-
 ## Requirements
 ### Requirement: Tracked workouts upload as TCX with idempotent external ids
 For workouts whose source is a GPS track (not `INPUT_MANUAL`), the migration SHALL upload the paired TCX file via the Strava upload API with a deterministic `external_id` derived from the workout filename, poll the upload until processed, and record the resulting activity id in the ledger. Re-running the migration SHALL NOT create duplicates for workouts already in the ledger or rejected by Strava as duplicates.
@@ -42,7 +41,7 @@ After an activity exists, the migration SHALL set its name from the JSON `name` 
 - **THEN** the workout is recorded as failed in the ledger, even though no duplicate activity was actually created, because success is decided solely by an activity id being present in the response
 
 ### Requirement: A configured old-bike gear correction is attempted best-effort, and shown as confirmed rather than assumed
-For a Ride workout dated on or before a configured cutoff date, with an old bike's gear id configured, the migration SHALL include that gear id on the activity's post-upload metadata update. This correction is best-effort only: Strava's public API is known to silently accept and discard `gear_id` on some activities rather than applying it (a real, undocumented platform limitation, not a defect in this app's request). Because the write cannot be trusted, any page displaying a migrated workout's gear (the review page, the workout report) SHALL read the activity's actual gear back from Strava when connected, and label it as confirmed; only when not connected, or for a not-yet-migrated workout, SHALL the offline-computed planned gear id be shown, explicitly labeled as planned rather than confirmed.
+For a Ride workout dated on or before a configured cutoff date, with an old bike's gear id configured, the migration SHALL include that gear id on the activity's post-upload metadata update. This correction is best-effort only: Strava's public API is known to silently accept and discard `gear_id` on some activities rather than applying it (a real, undocumented platform limitation, not a defect in this app's request). Because the write cannot be trusted, any page displaying a migrated workout's gear (the review page, the workout report) SHALL read the activity's actual gear back from Strava when connected, and label it as confirmed; only when not connected, or for a not-yet-migrated workout, SHALL the offline-computed planned gear id be shown, explicitly labeled as planned rather than confirmed. The review page's confirmed-gear read SHALL always be a live Strava read. The workout report's confirmed-gear read MAY instead be satisfied from a previously confirmed value for that activity, without a new Strava call, as long as that value was itself obtained from a live read at some point.
 
 #### Scenario: Gear correction is attempted for a pre-cutoff Ride
 - **WHEN** a Ride workout dated on or before the configured cutoff date is migrated with an old-bike gear id configured
@@ -55,6 +54,14 @@ For a Ride workout dated on or before a configured cutoff date, with an old bike
 #### Scenario: Confirmed gear, not the planned value, is shown once connected
 - **WHEN** the review page or workout report displays a migrated workout's gear while connected to Strava
 - **THEN** it shows the gear actually read back from the activity, labeled as confirmed, even if it differs from the planned gear id
+
+#### Scenario: The review page always reads live, even if a cached value exists
+- **WHEN** the review page displays a migrated workout's confirmed gear
+- **THEN** it performs a live Strava read rather than reusing a previously cached value, so a gear correction made directly on Strava is visible immediately
+
+#### Scenario: The workout report reuses a previously confirmed value
+- **WHEN** the workout report displays a migrated workout's confirmed gear and that activity's gear was already successfully confirmed on an earlier occasion
+- **THEN** it shows that previously confirmed value without making a new Strava call for it
 
 ### Requirement: Generated names and descriptions are enriched with the workout's approximate location
 When a workout's name is generated (not JSON-supplied) and its starting coordinates resolve to a notable nearby feature (a river/water body, a historic site or landmark, a park, or a named boulevard) via reverse geocoding, the migration SHALL append that place to the generated name, and SHALL append a corresponding sentence to the activity description. Enrichment SHALL never modify a JSON-supplied name. A geocoding failure or an absent nearby feature SHALL NOT block the workout; the name and description fall back to their un-enriched form.
@@ -72,11 +79,15 @@ When a workout's name is generated (not JSON-supplied) and its starting coordina
 - **THEN** the workout is still migrated, with its plain generated name and un-enriched description
 
 ### Requirement: The migration respects Strava rate limits and resumes
-The migration SHALL throttle below Strava's published rate limits, back off on 429 responses, and on interruption resume from the ledger without repeating completed work.
+The migration SHALL throttle below Strava's published rate limits, back off on 429 responses, and on interruption resume from the ledger without repeating completed work. When a 429 response triggers a wait for the rate-limit window to reset, that wait SHALL be logged with its expected duration at the moment it begins, so a long wait is distinguishable from an application hang.
 
 #### Scenario: Rate-limit response
 - **WHEN** the API returns 429
 - **THEN** the migration waits for the limit window before continuing, without marking the workout failed
+
+#### Scenario: A rate-limit wait is logged, not silent
+- **WHEN** a 429 response triggers a wait for the rate-limit window to reset
+- **THEN** a log entry is written at the start of the wait stating how long it is expected to last
 
 ### Requirement: Dry-run produces the full plan without side effects
 A dry-run SHALL enumerate every workout with its intended action (TCX upload / manual create / skip with reason), mapped sport, and photo count, performing zero Strava API calls.
@@ -106,3 +117,4 @@ The interactive migration review page SHALL reuse a previously resolved plan for
 #### Scenario: A fresh application start resolves the plan again
 - **WHEN** the application restarts
 - **THEN** the next review-page request resolves the plan from the archive and ledger from scratch, exactly as it did before this change
+
