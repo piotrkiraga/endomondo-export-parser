@@ -11,10 +11,108 @@
 
                 <p class="lead" th:text="#{home.welcome}">Reads your Endomondo activity export and helps you review and migrate it to Strava, one workout at a time.</p>
 
-                <div th:if="${athlete != null}" class="d-flex align-items-center gap-3 mt-3">
-                    <img th:if="${athlete.profilePictureUrl != null}" th:src="${athlete.profilePictureUrl}"
-                         alt="" style="width:48px;height:48px;border-radius:50%">
-                    <span th:text="#{home.athleteGreeting(${athlete.firstname}) }">Hello, Name!</span>
+                <span th:replace="~{fragments/messages-errors}"/>
+
+                <div class="mb-4">
+                    <span th:replace="~{fragments/strava-status :: strava-status}"/>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title" th:text="#{home.status.heading}">Where things stand</h5>
+                        <p class="text-body-secondary small" th:text="#{home.status.caption}">
+                            A snapshot of your local archive, migration progress, and cached location lookups.
+                        </p>
+                        <div class="detail-list">
+                            <div class="detail-row">
+                                <span class="detail-label" th:text="#{home.status.archiveWorkouts}">Workouts in archive</span>
+                                <span class="detail-value"
+                                      th:text="${appStatus.archiveWorkoutCount} ?: #{home.status.unavailable}"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label" th:text="#{home.status.migrated}">Migrated</span>
+                                <span class="detail-value" th:text="${appStatus.done}"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label" th:text="#{home.status.failed}">Failed</span>
+                                <span class="detail-value" th:text="${appStatus.failed}"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label" th:text="#{home.status.skipped}">Skipped</span>
+                                <span class="detail-value" th:text="${appStatus.skipped}"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label" th:text="#{home.status.pending}">Pending</span>
+                                <span class="detail-value" th:text="${appStatus.pending}"></span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label" th:text="#{home.status.locationCache}">Cached locations</span>
+                                <span class="detail-value" th:text="${appStatus.locationCacheSize}"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+
+                        <h5 class="card-title" th:text="#{migration.stravaDictionary.athleteHeading}">Athlete</h5>
+                        <p class="text-body-secondary" th:text="#{migration.stravaDictionary.description}">
+                            Cache Strava's rarely-changing data — your profile and every bike/shoe's name — with one call,
+                            instead of looking each one up individually. Never refreshes on its own.
+                        </p>
+
+                        <div th:if="${snapshot == null}" class="alert alert-secondary"
+                             th:text="#{migration.stravaDictionary.neverRefreshed}">
+                            Never refreshed yet.
+                        </div>
+
+                        <div th:if="${snapshot != null}">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <img th:if="${snapshot.profilePictureUrl != null}" th:src="${snapshot.profilePictureUrl}"
+                                     alt="" style="width:62px;height:62px;border-radius:50%">
+                                <div>
+                                    <div th:text="${snapshot.firstname} + ' ' + ${snapshot.lastname}">Name</div>
+                                    <div class="text-body-secondary small" th:if="${snapshot.location() != null}"
+                                         th:text="${snapshot.location()}">
+                                        City, Country
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h5 class="card-title" th:text="#{migration.stravaDictionary.gearHeading}">Gear</h5>
+                            <div th:if="${#maps.isEmpty(snapshot.gearNames)}" class="text-body-secondary"
+                                 th:text="#{migration.stravaDictionary.noGear}">
+                                No bikes or shoes on this account.
+                            </div>
+                            <table th:unless="${#maps.isEmpty(snapshot.gearNames)}" class="table table-sm">
+                                <thead>
+                                <tr>
+                                    <th th:text="#{migration.stravaDictionary.gearName}">Name</th>
+                                    <th th:text="#{migration.stravaDictionary.gearId}">Id</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="entry : ${snapshot.gearNames}">
+                                    <td th:text="${entry.value}">Name</td>
+                                    <td th:text="${entry.key}">Id</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p th:if="${snapshot != null}" class="text-body-secondary small mt-3"
+                           th:text="#{migration.stravaDictionary.refreshedAt(${refreshedAtDisplay})}">
+                            Refreshed at ...
+                        </p>
+
+                        <form th:action="@{/home/refresh}" method="post" class="mt-3">
+                            <button type="submit" class="btn btn-primary" th:text="#{migration.stravaDictionary.refresh}">
+                                Refresh from Strava
+                            </button>
+                        </form>
+
+                    </div>
                 </div>
 
             </div>

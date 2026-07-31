@@ -44,7 +44,7 @@ public class PageRenderSmokeTest {
     @ValueSource(strings = {
             "/home", "/upload",
             "/migration/photo-report", "/migration/workout-report",
-            "/migration/review", "/migration/strava-dictionary"
+            "/migration/review"
     })
     void pageRendersWithoutError(String path) throws Exception {
         mockMvc.perform(get(path).with(user("piotr")))

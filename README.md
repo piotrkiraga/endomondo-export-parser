@@ -53,11 +53,14 @@ sends it — so migrating means clicking through your history, not trusting a bu
   activities), `activity:read_all` (confirm what Strava actually has on file for an
   already-migrated activity, e.g. its gear — needed because Strava's write-side gear
   correction doesn't reliably apply, see "A note on the data" below), and
-  `profile:read_all` (your profile and gear names, for the Strava data page below).
-- **Caches Strava's own rarely-changing data.** A "Strava data" page fetches your profile
-  and every bike/shoe's name in one call, refreshed only when you click the button — every
+  `profile:read_all` (your profile and gear names, for the home dashboard below).
+- **Caches Strava's own rarely-changing data.** The home page fetches your profile and
+  every bike/shoe's name in one call, refreshed only when you click the button — every
   gear name shown elsewhere in the app reads from this cache first, instead of one live
-  lookup per gear id. The home page greets you by name once it's been refreshed.
+  lookup per gear id.
+- **Shows an at-a-glance dashboard on the home page.** Archive size, migration ledger
+  breakdown (done/failed/skipped/pending), and cached-location count — all read from
+  local data already written by the features above, no extra Strava calls.
 - **Migrates one workout at a time, by hand.** A review screen shows each workout's real
   name, sport, description, and photo thumbnails (geotagged copies, each with a
   click-to-copy local path, ready to attach manually — the one thing the API can't do),
