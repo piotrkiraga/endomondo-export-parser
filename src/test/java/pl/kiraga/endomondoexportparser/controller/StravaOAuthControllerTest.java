@@ -63,8 +63,8 @@ public class StravaOAuthControllerTest {
     @Test
     void callbackWithAReturnCookieRedirectsBackToWhereTheUserStarted() throws Exception {
         mockMvc.perform(get("/strava/callback").param("error", "access_denied")
-                        .cookie(new Cookie(RETURN_COOKIE_NAME, "/migration/strava-dictionary")).with(user("piotr")))
-                .andExpect(redirectedUrl("/migration/strava-dictionary"));
+                        .cookie(new Cookie(RETURN_COOKIE_NAME, "/migration/review")).with(user("piotr")))
+                .andExpect(redirectedUrl("/migration/review"));
     }
 
     @Test

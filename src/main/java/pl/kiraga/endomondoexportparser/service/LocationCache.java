@@ -59,6 +59,15 @@ public class LocationCache {
         }
     }
 
+    public int size() {
+        lock.lock();
+        try {
+            return load().size();
+        } finally {
+            lock.unlock();
+        }
+    }
+
     private Map<String, PlaceDescription> load() {
 
         if (entries != null) {

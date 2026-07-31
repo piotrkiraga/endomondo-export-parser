@@ -49,13 +49,13 @@ public class StravaConnectRedirectTest {
     void connectWithAReturnParamRemembersItInACookie() throws Exception {
 
         MvcResult result = mockMvc.perform(get("/strava/connect")
-                        .param("return", "/migration/strava-dictionary").with(user("piotr")))
+                        .param("return", "/migration/review").with(user("piotr")))
                 .andExpect(status().is3xxRedirection())
                 .andReturn();
 
         Cookie returnCookie = result.getResponse().getCookie("strava_oauth_return");
         assertNotNull(returnCookie, "no strava_oauth_return cookie was set");
-        assertEquals("/migration/strava-dictionary", returnCookie.getValue());
+        assertEquals("/migration/review", returnCookie.getValue());
     }
 
     @Test

@@ -42,6 +42,21 @@ public class LocationCacheTest {
     }
 
     @Test
+    void sizeIsZeroWithoutACacheFile(@TempDir Path dir) {
+        assertEquals(0, new LocationCache(dir.resolve("cache.json")).size());
+    }
+
+    @Test
+    void sizeCountsDistinctCachedCoordinates(@TempDir Path dir) {
+        LocationCache cache = new LocationCache(dir.resolve("cache.json"));
+        cache.put(50.06143, 19.93658, VISTULA_IN_KRAKOW);
+        cache.put(52.23172, 21.00600, VISTULA_IN_KRAKOW);
+        cache.put(50.06149, 19.93655, VISTULA_IN_KRAKOW);
+
+        assertEquals(2, cache.size(), "coordinates rounding to the same key share one entry");
+    }
+
+    @Test
     void survivesAFreshInstanceReadingTheSameFile(@TempDir Path dir) {
         Path file = dir.resolve("cache.json");
         new LocationCache(file).put(50.06143, 19.93658, VISTULA_IN_KRAKOW);
