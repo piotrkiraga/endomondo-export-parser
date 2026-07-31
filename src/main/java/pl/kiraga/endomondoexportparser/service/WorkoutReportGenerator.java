@@ -118,10 +118,15 @@ public class WorkoutReportGenerator {
      * empty string means Strava was successfully read and confirmed no gear at all,
      * which is real information, not a reason to fall back. {@code gearNameCache} avoids
      * repeating the name lookup for the same gear id across many entries in one build.
+     * A gear id already confirmed on an earlier generation is taken from
+     * {@link ConfirmedGearCache} — no Strava call, hence no throttle wait either.
      */
     private String confirmedGearDisplayFor(long activityId, Map<String, String> gearNameCache) {
-        throttle.await();
-        Optional<String> confirmedGearId = confirmedGearResolver.gearIdFor(activityId);
+        Optional<String> confirmedGearId = confirmedGearResolver.cachedGearIdFor(activityId);
+        if (confirmedGearId.isEmpty()) {
+            throttle.await();
+            confirmedGearId = confirmedGearResolver.gearIdFor(activityId);
+        }
         if (confirmedGearId.isEmpty()) {
             return null;
         }

@@ -10,33 +10,51 @@ import pl.kiraga.endomondoexportparser.exception.StravaApiException;
  * check, since the write-side {@code gear_id} correction ({@link OldBikeGearResolver}) is
  * confirmed unreliable (see design.md's "Old-bike gear correction" decision). Shared by
  * {@link pl.kiraga.endomondoexportparser.controller.MigrationReviewController} (per-workout,
- * live) and {@link WorkoutReportGenerator} (per already-migrated entry, best-effort), so the
- * two never diverge.
+ * always live) and {@link WorkoutReportGenerator} (per already-migrated entry, best-effort and
+ * cache-first), so the two never diverge.
  */
 @Service
 public class ConfirmedGearResolver {
 
     private final StravaClient stravaClient;
     private final StravaDictionaryService stravaDictionary;
+    private final ConfirmedGearCache confirmedGearCache;
 
-    public ConfirmedGearResolver(StravaClient stravaClient, StravaDictionaryService stravaDictionary) {
+    public ConfirmedGearResolver(StravaClient stravaClient, StravaDictionaryService stravaDictionary,
+                                  ConfirmedGearCache confirmedGearCache) {
         this.stravaClient = stravaClient;
         this.stravaDictionary = stravaDictionary;
+        this.confirmedGearCache = confirmedGearCache;
     }
 
     /**
-     * The activity's confirmed gear id straight from Strava. Empty if the read itself
-     * failed (network error, insufficient scope, etc.) — callers should fall back to
-     * "unknown"/"planned" rather than treating that the same as "confirmed no gear".
-     * Present-but-blank means Strava confirmed there is no gear on the activity.
+     * The activity's confirmed gear id straight from Strava, always a live read — the review
+     * page has to show a gear correction just made on Strava's own site, so it must never be
+     * served from {@link ConfirmedGearCache} (which this only writes to, see
+     * {@link #cachedGearIdFor}). Empty if the read itself failed (network error, insufficient
+     * scope, etc.) — callers should fall back to "unknown"/"planned" rather than treating
+     * that the same as "confirmed no gear". Present-but-blank means Strava confirmed there
+     * is no gear on the activity.
      */
     public Optional<String> gearIdFor(long activityId) {
         try {
             String gearId = stravaClient.getActivity(activityId).gearId();
-            return Optional.of(gearId == null ? "" : gearId);
+            String confirmed = gearId == null ? "" : gearId;
+            confirmedGearCache.put(activityId, confirmed);
+            return Optional.of(confirmed);
         } catch (StravaApiException e) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * The gear id confirmed for this activity on some earlier occasion, read only from
+     * {@link ConfirmedGearCache} — no Strava call, so no rate-limit exposure and no throttle
+     * wait for the caller. Empty means nothing has been cached for the activity yet, not that
+     * it has no gear; callers wanting an answer either way fall back to {@link #gearIdFor}.
+     */
+    public Optional<String> cachedGearIdFor(long activityId) {
+        return confirmedGearCache.get(activityId);
     }
 
     /**
