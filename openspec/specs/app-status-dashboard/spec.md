@@ -26,15 +26,15 @@ The home page SHALL show, from the migration ledger, a count of workouts in each
 - **THEN** all four ledger counts show as zero, not an error
 
 ### Requirement: The home page shows the location cache's size
-The home page SHALL show the number of distinct coordinates the location cache currently holds.
+The home page SHALL show the number of distinct coordinates the location cache currently holds, as a link to the location cache listing page.
 
 #### Scenario: Cache has cached lookups
 - **WHEN** the home page is requested and the location cache file contains entries
-- **THEN** the page shows their count
+- **THEN** the page shows their count, linked to the location cache listing page
 
 #### Scenario: Cache is empty or absent
 - **WHEN** the home page is requested and the location cache has never been written
-- **THEN** the page shows the count as zero, not an error
+- **THEN** the page shows the count as zero, not an error, still linked to the location cache listing page
 
 ### Requirement: The home page shows the Strava athlete profile and gear dictionary
 The home page SHALL show the connected Strava athlete's profile (name, picture, location when available) and the full gear dictionary (every bike/shoe name and id), sourced from the Strava dictionary cache — replacing the separate Strava Dictionary page, which is retired.

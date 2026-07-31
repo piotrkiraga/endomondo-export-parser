@@ -40,6 +40,43 @@ public class NominatimClientTest {
     }
 
     @Test
+    void parsesTheCountryCodeUppercased() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        NominatimClient client = new NominatimClient(builder);
+
+        server.expect(requestTo(
+                        "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=50.061430&lon=19.936580&zoom=14"))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                        {"address": {"city": "Kraków", "suburb": "Stare Miasto", "country_code": "pl"}}
+                        """, APPLICATION_JSON));
+
+        Optional<Locality> result = client.reverseGeocode(50.06143, 19.93658);
+
+        assertEquals("PL", result.orElseThrow().countryCode());
+        server.verify();
+    }
+
+    @Test
+    void aMissingCountryCodeYieldsANullCountryCode() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        NominatimClient client = new NominatimClient(builder);
+
+        server.expect(requestTo(
+                        "https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=50.061430&lon=19.936580&zoom=14"))
+                .andRespond(withSuccess("""
+                        {"address": {"city": "Kraków", "suburb": "Stare Miasto"}}
+                        """, APPLICATION_JSON));
+
+        Optional<Locality> result = client.reverseGeocode(50.06143, 19.93658);
+
+        assertEquals("Kraków", result.orElseThrow().city());
+        assertNull(result.orElseThrow().countryCode());
+    }
+
+    @Test
     void fallsBackThroughTownVillageAndMunicipality() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();

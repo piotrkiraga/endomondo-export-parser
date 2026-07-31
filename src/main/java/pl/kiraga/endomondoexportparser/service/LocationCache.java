@@ -68,6 +68,15 @@ public class LocationCache {
         }
     }
 
+    public Map<String, PlaceDescription> entries() {
+        lock.lock();
+        try {
+            return Map.copyOf(load());
+        } finally {
+            lock.unlock();
+        }
+    }
+
     private Map<String, PlaceDescription> load() {
 
         if (entries != null) {

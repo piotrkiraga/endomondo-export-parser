@@ -47,7 +47,9 @@
                             </div>
                             <div class="detail-row">
                                 <span class="detail-label" th:text="#{home.status.locationCache}">Cached locations</span>
-                                <span class="detail-value" th:text="${appStatus.locationCacheSize}"></span>
+                                <span class="detail-value">
+                                    <a th:href="@{/location-cache}" th:text="${appStatus.locationCacheSize}"></a>
+                                </span>
                             </div>
                         </div>
                     </div>

@@ -15,8 +15,9 @@ import pl.kiraga.endomondoexportparser.model.PlaceDescription;
 public class WorkoutNamingUtilTest {
 
     private static final PlaceDescription VISTULA_IN_KRAKOW =
-            new PlaceDescription("Kraków", null, new NearbyFeature("Vistula", FeatureKind.WATER, 50));
-    private static final PlaceDescription WOLUWE_IN_BRUSSELS = new PlaceDescription("Brussels", "Woluwe-Saint-Pierre", null);
+            new PlaceDescription("Kraków", null, new NearbyFeature("Vistula", FeatureKind.WATER, 50), null);
+    private static final PlaceDescription WOLUWE_IN_BRUSSELS =
+            new PlaceDescription("Brussels", "Woluwe-Saint-Pierre", null, null);
 
     @Test
     void existingNameWinsOverGeneration() {

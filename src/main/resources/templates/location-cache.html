@@ -1,0 +1,71 @@
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<head th:replace="~{fragments/head :: head(#{title.locationCache})}"></head>
+<body>
+
+<div th:replace="~{fragments/header :: header(#{title.locationCache})}"/>
+
+<section class="my-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-10 mx-auto">
+
+                <span th:replace="~{fragments/messages-errors}"/>
+
+                <div class="mb-4">
+                    <span th:replace="~{fragments/strava-status :: strava-status}"/>
+                </div>
+
+                <p class="lead" th:text="#{locationCache.description}">
+                    Every place the location cache has resolved, and the coordinates that map to it.
+                </p>
+
+                <div class="card">
+                    <div class="card-body">
+
+                        <h5 class="card-title" th:text="#{locationCache.heading}">Resolved coordinates</h5>
+
+                        <!-- Above the table on purpose: the table can run past the response buffer, and once the
+                             response is committed Spring Security can no longer open the session its CSRF token needs. -->
+                        <form th:action="@{/location-cache/backfill-countries}" method="post" class="mb-3">
+                            <button type="submit" class="btn btn-primary" th:text="#{locationCache.backfillCountries}">
+                                Fill in missing countries
+                            </button>
+                        </form>
+
+                        <div th:if="${#lists.isEmpty(groups)}" class="text-body-secondary"
+                             th:text="#{locationCache.empty}">
+                            No locations cached yet.
+                        </div>
+
+                        <table th:unless="${#lists.isEmpty(groups)}" class="table table-sm">
+                            <thead>
+                            <tr>
+                                <th th:text="#{locationCache.place}">Place</th>
+                                <th th:text="#{locationCache.count}">Count</th>
+                                <th th:text="#{locationCache.coordinates}">Coordinates</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="group : ${groups}">
+                                <td th:text="${group.place}">Dębniki, Kraków, Poland</td>
+                                <td th:text="${group.count}">15</td>
+                                <td>
+                                    <span th:each="coordinate, iterStat : ${group.coordinates}"
+                                          th:text="${coordinate.display() + ';' + (iterStat.last ? '' : ' ')}">50.061, 19.937; </span>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<div th:replace="~{fragments/footer :: footer}"/>
+
+</body>
+</html>

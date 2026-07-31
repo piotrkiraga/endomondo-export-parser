@@ -45,7 +45,7 @@ public class WorkoutReportGeneratorTest {
     private static final Clock FIXED_NOON = Clock.fixed(Instant.parse("2026-07-27T12:00:00Z"), ZoneOffset.UTC);
     private static final PlaceLookup NO_PLACES = (lat, lon) -> Optional.empty();
     private static final PlaceDescription VISTULA_IN_KRAKOW =
-            new PlaceDescription("Kraków", null, new NearbyFeature("Vistula", FeatureKind.WATER, 50));
+            new PlaceDescription("Kraków", null, new NearbyFeature("Vistula", FeatureKind.WATER, 50), null);
     private static final PlaceLookup ALWAYS_VISTULA = (lat, lon) -> Optional.of(VISTULA_IN_KRAKOW);
 
     @TempDir

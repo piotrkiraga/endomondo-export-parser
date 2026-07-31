@@ -36,7 +36,7 @@ public class PhotoReportGeneratorTest {
 
     private static final PlaceLookup NO_PLACES = (lat, lon) -> Optional.empty();
     private static final PlaceDescription VISTULA_IN_KRAKOW =
-            new PlaceDescription("Kraków", null, new NearbyFeature("Vistula", FeatureKind.WATER, 50));
+            new PlaceDescription("Kraków", null, new NearbyFeature("Vistula", FeatureKind.WATER, 50), null);
     private static final PlaceLookup ALWAYS_VISTULA = (lat, lon) -> Optional.of(VISTULA_IN_KRAKOW);
 
     private final PhotoReportGenerator generator = generatorWith(NO_PLACES);

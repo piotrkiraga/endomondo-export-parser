@@ -27,7 +27,7 @@ public class AppStatusResolverTest {
     private static final Clock FIXED = Clock.fixed(Instant.parse("2026-07-31T12:00:00Z"), ZoneOffset.UTC);
 
     private static final PlaceDescription VISTULA_IN_KRAKOW =
-            new PlaceDescription("Kraków", null, new NearbyFeature("Vistula", FeatureKind.WATER, 50));
+            new PlaceDescription("Kraków", null, new NearbyFeature("Vistula", FeatureKind.WATER, 50), null);
 
     private MigrationLedger ledger;
     private LocationCache locationCache;
