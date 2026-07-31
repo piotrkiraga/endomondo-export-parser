@@ -56,4 +56,36 @@ public class LocalizationTest {
                 .andExpect(content().string(containsString("Reads your Endomondo activity export")));
     }
 
+    @Test
+    void defaultLocaleFollowsBrowserPreferenceForPolish() throws Exception {
+        mockMvc.perform(get("/home").header("Accept-Language", "pl-PL,pl;q=0.9,en;q=0.5"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Strona główna")));
+    }
+
+    @Test
+    void defaultLocaleFallsBackToEnglishForAnUnsupportedBrowserLanguage() throws Exception {
+        mockMvc.perform(get("/home").header("Accept-Language", "de-DE,de;q=0.9"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Home")))
+                .andExpect(content().string(not(containsString("Strona główna"))));
+    }
+
+    @Test
+    void explicitLangParameterOverridesBrowserPreference() throws Exception {
+        mockMvc.perform(get("/home").param("lang", "en").header("Accept-Language", "pl-PL,pl;q=0.9"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Home")))
+                .andExpect(content().string(not(containsString("Strona główna"))));
+    }
+
+    @Test
+    void activeLanguageLinkIsHighlightedInTheNav() throws Exception {
+        mockMvc.perform(get("/home").param("lang", "pl"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(
+                        "class=\"nav-link active fw-bold\" href=\"?lang=pl\" aria-current=\"true\"")))
+                .andExpect(content().string(containsString("class=\"nav-link\" href=\"?lang=en\"")));
+    }
+
 }
