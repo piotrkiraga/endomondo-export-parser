@@ -53,7 +53,7 @@ public final class MigrationTestSupport {
         MigrationLedger ledger = new MigrationLedger(dir.resolve("ledger.json"), clock);
         OldBikeGearResolver oldBikeGearResolver = new OldBikeGearResolver();
         MigrationExecutor executor = new MigrationExecutor(planner, resolver, ledger, stravaClient, oldBikeGearResolver,
-                new RequestThrottleUtil(0), millis -> { });
+                new DuplicateActivityResolver(stravaClient), new RequestThrottleUtil(0), millis -> { });
         WorkoutPhotoResolver photoResolver = new WorkoutPhotoResolver(new EndomondoJsonParser(), new PhotoGeotagger());
         StravaDictionaryService stravaDictionary = new StravaDictionaryService(stravaClient,
                 new StravaDictionaryCache(dir.resolve("dictionary.json")), clock);

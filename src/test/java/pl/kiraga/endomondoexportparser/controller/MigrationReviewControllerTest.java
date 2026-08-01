@@ -361,7 +361,7 @@ public class MigrationReviewControllerTest {
         private int resolveAllCalls;
 
         private CountingExecutor(MigrationExecutor delegate) {
-            super(null, null, null, null, null);
+            super(null, null, null, null, null, null);
             this.delegate = delegate;
         }
 
