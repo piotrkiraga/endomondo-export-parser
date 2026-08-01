@@ -21,7 +21,7 @@ public class ResolvedPlanCacheTest {
         private final List<Path> resolvedRoots = new ArrayList<>();
 
         private RecordingExecutor() {
-            super(null, null, null, null, null);
+            super(null, null, null, null, null, null);
         }
 
         @Override

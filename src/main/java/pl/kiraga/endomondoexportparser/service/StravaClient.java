@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.LongConsumer;
 import java.util.function.Supplier;
@@ -20,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -33,6 +35,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import pl.kiraga.endomondoexportparser.dto.strava.StravaActivityDto;
+import pl.kiraga.endomondoexportparser.dto.strava.StravaActivitySummaryDto;
 import pl.kiraga.endomondoexportparser.dto.strava.StravaAthleteDto;
 import pl.kiraga.endomondoexportparser.dto.strava.StravaGearDto;
 import pl.kiraga.endomondoexportparser.dto.strava.StravaTokensDto;
@@ -335,6 +338,25 @@ public class StravaClient {
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken())
                 .retrieve()
                 .body(StravaActivityDto.class));
+    }
+
+    /**
+     * The connected athlete's own activities that started inside the given window, used to
+     * recover the activity id behind a duplicate-upload rejection that carried none (see
+     * {@link DuplicateActivityResolver}). {@code per_page=30} is generous for the few-minute
+     * windows this is called with, so no pagination handling is needed.
+     */
+    public List<StravaActivitySummaryDto> listActivities(Instant after, Instant before) {
+        return withRetryOn429(() -> restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v3/athlete/activities")
+                        .queryParam("after", after.getEpochSecond())
+                        .queryParam("before", before.getEpochSecond())
+                        .queryParam("per_page", 30)
+                        .build())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken())
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<StravaActivitySummaryDto>>() { }));
     }
 
     /** Looks up a piece of gear's human-readable name, e.g. for displaying alongside its bare id. */

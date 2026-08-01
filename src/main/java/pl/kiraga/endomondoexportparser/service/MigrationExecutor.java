@@ -9,6 +9,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.function.LongConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -56,24 +57,28 @@ public class MigrationExecutor {
     private final MigrationLedger ledger;
     private final StravaClient stravaClient;
     private final OldBikeGearResolver oldBikeGearResolver;
+    private final DuplicateActivityResolver duplicateActivityResolver;
     private final RequestThrottleUtil throttle;
     private final LongConsumer sleeper;
 
     @Autowired
     public MigrationExecutor(MigrationPlanner planner, WorkoutResolver resolver, MigrationLedger ledger,
-                              StravaClient stravaClient, OldBikeGearResolver oldBikeGearResolver) {
-        this(planner, resolver, ledger, stravaClient, oldBikeGearResolver, new RequestThrottleUtil(1000),
-                MigrationExecutor::realSleep);
+                              StravaClient stravaClient, OldBikeGearResolver oldBikeGearResolver,
+                              DuplicateActivityResolver duplicateActivityResolver) {
+        this(planner, resolver, ledger, stravaClient, oldBikeGearResolver, duplicateActivityResolver,
+                new RequestThrottleUtil(1000), MigrationExecutor::realSleep);
     }
 
     MigrationExecutor(MigrationPlanner planner, WorkoutResolver resolver, MigrationLedger ledger,
-                       StravaClient stravaClient, OldBikeGearResolver oldBikeGearResolver, RequestThrottleUtil throttle,
+                       StravaClient stravaClient, OldBikeGearResolver oldBikeGearResolver,
+                       DuplicateActivityResolver duplicateActivityResolver, RequestThrottleUtil throttle,
                        LongConsumer sleeper) {
         this.planner = planner;
         this.resolver = resolver;
         this.ledger = ledger;
         this.stravaClient = stravaClient;
         this.oldBikeGearResolver = oldBikeGearResolver;
+        this.duplicateActivityResolver = duplicateActivityResolver;
         this.throttle = throttle;
         this.sleeper = sleeper;
     }
@@ -221,6 +226,12 @@ public class MigrationExecutor {
                 return result.activityId();
             }
             if (result.failed()) {
+                throttle.await();
+                Optional<Long> alreadyOnStrava = duplicateActivityResolver.findExistingActivity(
+                        toStartInstant(workout, "resolve a duplicate-upload rejection"), workout.distanceKm());
+                if (alreadyOnStrava.isPresent()) {
+                    return alreadyOnStrava.get();
+                }
                 throw new StravaApiException("Upload failed: " + result.error());
             }
             sleeper.accept(UPLOAD_POLL_INTERVAL_MILLIS);
@@ -236,17 +247,17 @@ public class MigrationExecutor {
         StravaActivityDto activity = stravaClient.createManualActivity(
                 workout.name(),
                 workout.stravaSportType(),
-                toStartInstant(workout),
+                toStartInstant(workout, "create a manual activity"),
                 workout.durationS() == null ? Duration.ZERO : Duration.ofSeconds(workout.durationS()),
                 workout.distanceKm() == null ? null : workout.distanceKm() * 1000.0,
                 workout.description());
         return activity.id();
     }
 
-    private static Instant toStartInstant(ResolvedWorkout workout) {
+    private static Instant toStartInstant(ResolvedWorkout workout, String purpose) {
         if (workout.startTime() == null) {
             throw new StravaApiException(
-                    "Workout " + workout.basename() + " has no start time; cannot create a manual activity");
+                    "Workout " + workout.basename() + " has no start time; cannot " + purpose);
         }
         return LocalDateTime.parse(workout.startTime(), START_TIME_FORMAT).toInstant(ZoneOffset.UTC);
     }

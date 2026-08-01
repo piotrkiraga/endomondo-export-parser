@@ -23,12 +23,14 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import pl.kiraga.endomondoexportparser.dto.strava.StravaActivityDto;
+import pl.kiraga.endomondoexportparser.dto.strava.StravaActivitySummaryDto;
 import pl.kiraga.endomondoexportparser.dto.strava.StravaAthleteDto;
 import pl.kiraga.endomondoexportparser.dto.strava.StravaGearDto;
 import pl.kiraga.endomondoexportparser.dto.strava.StravaTokensDto;
@@ -291,6 +293,49 @@ public class StravaClientTest {
 
         assertEquals(42L, activity.id());
         assertEquals("b18387038", activity.gearId());
+    }
+
+    @Test
+    void listActivitiesQueriesTheAthletesOwnActivitiesInTheGivenWindow(@TempDir Path dir) {
+        StravaClient client = newClient(dir);
+        storeToken("t", Instant.parse("2026-07-20T13:00:00Z"));
+
+        // 1315659360 / 1315659600 are 2011-09-10T12:56:00Z / 13:00:00Z as epoch seconds.
+        server.expect(requestTo(
+                        "https://www.strava.com/api/v3/athlete/activities?after=1315659360&before=1315659600&per_page=30"))
+                .andExpect(method(GET))
+                .andExpect(header("Authorization", "Bearer t"))
+                .andRespond(withSuccess("[]", APPLICATION_JSON));
+
+        List<StravaActivitySummaryDto> activities = client.listActivities(
+                Instant.parse("2011-09-10T12:56:00Z"), Instant.parse("2011-09-10T13:00:00Z"));
+
+        server.verify();
+        assertTrue(activities.isEmpty());
+    }
+
+    @Test
+    void listActivitiesDeserializesTheActivityArray(@TempDir Path dir) {
+        StravaClient client = newClient(dir);
+        storeToken("t", Instant.parse("2026-07-20T13:00:00Z"));
+
+        server.expect(requestTo(
+                        "https://www.strava.com/api/v3/athlete/activities?after=1315659360&before=1315659600&per_page=30"))
+                .andRespond(withSuccess("""
+                        [{"id": 1234567890, "name": "Sample tracked ride", "start_date": "2011-09-10T12:58:00Z",
+                          "distance": 34040.0, "sport_type": "Ride"},
+                         {"id": 1234567891, "name": "Another ride", "start_date": "2011-09-10T12:59:30Z",
+                          "distance": 12500.0, "sport_type": "Ride"}]
+                        """, APPLICATION_JSON));
+
+        List<StravaActivitySummaryDto> activities = client.listActivities(
+                Instant.parse("2011-09-10T12:56:00Z"), Instant.parse("2011-09-10T13:00:00Z"));
+
+        assertEquals(2, activities.size());
+        assertEquals(1234567890L, activities.get(0).id());
+        assertEquals(Instant.parse("2011-09-10T12:58:00Z"), activities.get(0).startDateInstant());
+        assertEquals(34040.0, activities.get(0).distance());
+        assertEquals(1234567891L, activities.get(1).id());
     }
 
     @Test

@@ -65,7 +65,7 @@ public class MigrationExecutorTest {
         oldBikeGearResolver = new OldBikeGearResolver();
 
         return new MigrationExecutor(planner, resolver, ledger, stravaClient, oldBikeGearResolver,
-                new RequestThrottleUtil(0), millis -> { });
+                new DuplicateActivityResolver(stravaClient), new RequestThrottleUtil(0), millis -> { });
     }
 
     private MigrationLedger ledgerFor(Path dir) {
@@ -165,6 +165,89 @@ public class MigrationExecutorTest {
 
         assertEquals(1, summary.uploaded());
         assertEquals(999L, ledgerFor(dir).find(TRACKED_BASENAME).orElseThrow().activityId());
+    }
+
+    // --- Duplicate rejection without an activity id: reconciled by reading Strava back ---
+
+    /**
+     * TRACKED_BASENAME's own start time (2011-09-10 12:58:00) as the 2-minute window
+     * {@link DuplicateActivityResolver} queries, in epoch seconds.
+     */
+    private static final String ACTIVITY_WINDOW_URL =
+            "https://www.strava.com/api/v3/athlete/activities?after=1315659360&before=1315659600&per_page=30";
+
+    @Test
+    void aDuplicateRejectionWithoutAnActivityIdIsReconciledFromTheAthletesActivities(@TempDir Path dir)
+            throws Exception {
+        Path archiveRoot = archiveWithTrackedWorkout(dir);
+        MigrationExecutor executor = executorFor(dir);
+
+        server.expect(requestTo("https://www.strava.com/api/v3/uploads"))
+                .andRespond(withSuccess(
+                        "{\"id\": 555, \"error\": \"duplicate of activity\", \"status\": \"error\"}",
+                        APPLICATION_JSON));
+        server.expect(requestTo(ACTIVITY_WINDOW_URL))
+                .andExpect(method(GET))
+                .andRespond(withSuccess("""
+                        [{"id": 1234567890, "start_date": "2011-09-10T12:58:00Z", "distance": 34040.0}]
+                        """, APPLICATION_JSON));
+        server.expect(requestTo("https://www.strava.com/api/v3/activities/1234567890"))
+                .andExpect(method(PUT))
+                .andRespond(withSuccess("{\"id\": 1234567890}", APPLICATION_JSON));
+
+        MigrationRunSummary summary = executor.run(archiveRoot);
+
+        server.verify();
+        assertEquals(1, summary.uploaded());
+        assertEquals(0, summary.failed());
+
+        LedgerEntry entry = ledgerFor(dir).find(TRACKED_BASENAME).orElseThrow();
+        assertEquals(LedgerStatus.DONE, entry.status());
+        assertEquals(1234567890L, entry.activityId());
+    }
+
+    @Test
+    void anUnconfirmedDuplicateRejectionStillFailsWithTheOriginalUploadError(@TempDir Path dir) throws Exception {
+        Path archiveRoot = archiveWithTrackedWorkout(dir);
+        MigrationExecutor executor = executorFor(dir);
+
+        server.expect(requestTo("https://www.strava.com/api/v3/uploads"))
+                .andRespond(withSuccess(
+                        "{\"id\": 555, \"error\": \"duplicate of activity\", \"status\": \"error\"}",
+                        APPLICATION_JSON));
+        server.expect(requestTo(ACTIVITY_WINDOW_URL))
+                .andRespond(withSuccess("[]", APPLICATION_JSON));
+
+        MigrationRunSummary summary = executor.run(archiveRoot);
+
+        server.verify();
+        assertEquals(0, summary.uploaded());
+        assertEquals(1, summary.failed());
+
+        LedgerEntry entry = ledgerFor(dir).find(TRACKED_BASENAME).orElseThrow();
+        assertEquals(LedgerStatus.FAILED, entry.status());
+        assertTrue(entry.reason().contains("duplicate of activity"),
+                "an unconfirmed rejection must keep Strava's own wording, not a generic message");
+    }
+
+    @Test
+    void aGenuineUploadErrorStillFailsWithItsOwnMessage(@TempDir Path dir) throws Exception {
+        Path archiveRoot = archiveWithTrackedWorkout(dir);
+        MigrationExecutor executor = executorFor(dir);
+
+        server.expect(requestTo("https://www.strava.com/api/v3/uploads"))
+                .andRespond(withSuccess(
+                        "{\"id\": 555, \"error\": \"TCX parse error\", \"status\": \"error\"}", APPLICATION_JSON));
+        // The read-back runs for a genuine failure too (see design.md's trade-off) and
+        // correctly finds nothing, since no such activity exists on Strava.
+        server.expect(requestTo(ACTIVITY_WINDOW_URL))
+                .andRespond(withSuccess("[]", APPLICATION_JSON));
+
+        MigrationRunSummary summary = executor.run(archiveRoot);
+
+        server.verify();
+        assertEquals(1, summary.failed());
+        assertTrue(ledgerFor(dir).find(TRACKED_BASENAME).orElseThrow().reason().contains("TCX parse error"));
     }
 
     // --- Manual workout: create, correct metadata ---
