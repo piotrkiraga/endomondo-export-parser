@@ -35,7 +35,9 @@
                             </div>
                             <div class="detail-row">
                                 <span class="detail-label" th:text="#{home.status.failed}">Failed</span>
-                                <span class="detail-value" th:text="${appStatus.failed}"></span>
+                                <span class="detail-value">
+                                    <a th:href="@{/migration/review/summary}" th:text="${appStatus.failed}"></a>
+                                </span>
                             </div>
                             <div class="detail-row">
                                 <span class="detail-label" th:text="#{home.status.skipped}">Skipped</span>
