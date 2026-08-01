@@ -18,38 +18,45 @@
 
                 <div th:if="${archivePresent}">
 
-                    <div class="detail-list mb-3">
-                        <div class="detail-row">
-                            <span class="detail-label" th:text="#{migration.review.summary.uploaded}">Uploaded</span>
-                            <span class="detail-value" th:text="${uploaded}"></span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label" th:text="#{migration.review.summary.manual}">Manual</span>
-                            <span class="detail-value" th:text="${manualCreated}"></span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label" th:text="#{migration.review.summary.skipped}">Skipped</span>
-                            <span class="detail-value" th:text="${skippedByUser}"></span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label" th:text="#{migration.review.summary.failed}">Failed</span>
-                            <span class="detail-value" th:text="${failed}"></span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label" th:text="#{migration.review.summary.remaining}">Remaining</span>
-                            <span class="detail-value" th:text="${remaining}"></span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label" th:text="#{migration.review.summary.total}">Total</span>
-                            <span class="detail-value" th:text="${total}"></span>
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title" th:text="#{migration.review.summary.heading}">Summary</h5>
+                            <div class="detail-list">
+                                <div class="detail-row">
+                                    <span class="detail-label" th:text="#{migration.review.summary.uploaded}">Uploaded</span>
+                                    <span class="detail-value" th:text="${uploaded}"></span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label" th:text="#{migration.review.summary.manual}">Manual</span>
+                                    <span class="detail-value" th:text="${manualCreated}"></span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label" th:text="#{migration.review.summary.skipped}">Skipped</span>
+                                    <span class="detail-value" th:text="${skippedByUser}"></span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label" th:text="#{migration.review.summary.failed}">Failed</span>
+                                    <span class="detail-value" th:text="${failed}"></span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label" th:text="#{migration.review.summary.remaining}">Remaining</span>
+                                    <span class="detail-value" th:text="${remaining}"></span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label" th:text="#{migration.review.summary.total}">Total</span>
+                                    <span class="detail-value" th:text="${total}"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div th:if="${not #lists.isEmpty(failures)}" class="mt-3">
-                        <h5 th:text="#{migration.review.summary.failuresHeading}">Failures</h5>
-                        <ul>
-                            <li th:each="failure : ${failures}" th:utext="${failure}"></li>
-                        </ul>
+                    <div th:if="${not #lists.isEmpty(failures)}" class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title" th:text="#{migration.review.summary.failuresHeading}">Failures</h5>
+                            <ul class="mb-0">
+                                <li th:each="failure : ${failures}" th:utext="${failure}"></li>
+                            </ul>
+                        </div>
                     </div>
 
                     <a th:if="${remaining > 0}" class="btn btn-primary mt-3" th:href="@{/migration/review}"
