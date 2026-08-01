@@ -17,7 +17,7 @@ Steps:
 1. From the project root, delete any leftover crash file: `rm -f bash.exe.stackdump`
 2. Check whether something is already listening on 8642 (`curl -s -o /dev/null -w "%{http_code}" http://localhost:8642/` — a `200` means it's already running; no need to restart it, just tell the user the URL). If it's not responding, continue.
 3. Start it in the background, scoped to `./openspec`, output redirected to a fixed log path so the user can tail it themselves:
-   `nohup npx markserv -p 8642 ./openspec > "C:\Users\<user>\AppData\Local\Temp\endomondo-markserv.log" 2>&1 &` then `disown` (substitute the real Windows username; use `$USERPROFILE`/`whoami` if unsure, or reuse whatever path this project's app log already uses if one exists).
+   `nohup npx markserv -p 8642 -b false ./openspec > "C:\Users\<user>\AppData\Local\Temp\endomondo-markserv.log" 2>&1 &` then `disown` (substitute the real Windows username; use `$USERPROFILE`/`whoami` if unsure, or reuse whatever path this project's app log already uses if one exists). The `-b false` flag is required — markserv defaults to auto-opening a browser tab on start, which is what the next step's note is guarding against.
 4. Confirm it actually came up with a `curl` check to http://localhost:8642/, and tell the user:
    - the browse URL (http://localhost:8642)
    - the log file path
