@@ -284,9 +284,9 @@ public class PhotoReportGenerator {
 
     private ActivityLink activityLink(Optional<String> activityId) {
         return activityId
-                .map(id -> new ActivityLink("✓ <a href=\"https://www.strava.com/activities/" + id
+                .map(id -> new ActivityLink("<span class=\"status-icon\">✓</span> <a href=\"https://www.strava.com/activities/" + id
                         + "\" target=\"_blank\" rel=\"noopener\">view on Strava</a>", true))
-                .orElseGet(() -> new ActivityLink("○ pending migration", false));
+                .orElseGet(() -> new ActivityLink("<span class=\"status-icon\">○</span> pending migration", false));
     }
 
     /** Basename is read back from the ancestor section's {@code data-basename} at click time, not embedded as a JS literal. */

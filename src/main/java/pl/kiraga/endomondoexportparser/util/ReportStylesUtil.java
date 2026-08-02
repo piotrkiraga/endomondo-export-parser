@@ -36,6 +36,7 @@ public final class ReportStylesUtil {
             .workout.uploaded{border-color:#2a9d5c;background-color:var(--uploaded-bg)}
             .workout h2{font-size:1.05em;margin:0 0 .4em}
             .meta{color:var(--muted);font-size:.85em;margin-bottom:.5em}
+            .status-icon{font-weight:700;font-size:1.3em;line-height:1;vertical-align:-.1em}
             /* Mirrors Bootstrap's .btn.btn-sm.btn-outline-secondary look (the app's own
                buttons), duplicated inline for the same self-containment reason as the
                rest of this stylesheet — the reports cannot link the app's webjar CSS. */
