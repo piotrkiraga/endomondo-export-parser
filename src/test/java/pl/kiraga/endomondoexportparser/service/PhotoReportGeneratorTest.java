@@ -164,7 +164,7 @@ public class PhotoReportGeneratorTest {
         String html = Files.readString(outputHtmlFile);
         assertTrue(html.contains("<section class=\"workout migrated\" data-basename=\"2015-04-11 11_38_17.0\">"),
                 "the card must carry the migrated accent class, same one the workout report uses");
-        assertTrue(html.contains("✓ <a href=\"https://www.strava.com/activities/998877\""),
+        assertTrue(html.contains("<span class=\"status-icon\">✓</span> <a href=\"https://www.strava.com/activities/998877\""),
                 "the checkmark must precede the existing Strava link");
         assertTrue(html.contains(".workout.migrated{"), "the accent must be styled inline, so the file still works offline");
     }
@@ -184,7 +184,7 @@ public class PhotoReportGeneratorTest {
         String html = Files.readString(outputHtmlFile);
         assertTrue(html.contains("<section class=\"workout\" data-basename=\"2015-04-11 11_38_17.0\">"));
         assertFalse(html.contains("class=\"workout migrated\""), "no activity id means no migrated accent");
-        assertTrue(html.contains("○ pending migration"));
+        assertTrue(html.contains("<span class=\"status-icon\">○</span> pending migration"));
     }
 
     // --- LocationDto resolution surfaced in the report ---

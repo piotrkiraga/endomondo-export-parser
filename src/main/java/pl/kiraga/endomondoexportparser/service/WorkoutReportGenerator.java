@@ -262,8 +262,8 @@ public class WorkoutReportGenerator {
     /** Mirrors {@link PhotoReportGenerator}'s own activity link text/format exactly. */
     private ActivityLink activityLink(Long activityId) {
         return activityId == null
-                ? new ActivityLink("○ pending migration", false)
-                : new ActivityLink("✓ <a href=\"https://www.strava.com/activities/" + activityId
+                ? new ActivityLink("<span class=\"status-icon\">○</span> pending migration", false)
+                : new ActivityLink("<span class=\"status-icon\">✓</span> <a href=\"https://www.strava.com/activities/" + activityId
                         + "\">view on Strava</a>", true);
     }
 
